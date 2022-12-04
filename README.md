@@ -34,7 +34,7 @@ Then test out the pip package
 
 ```python
 import tensorflow as tf
-from tensorflow_nearest_neighbours import nearest_neighbours
+from nearest_neighbours import nearest_neighbours
 
 x = tf.random.uniform(shape=[8, 10, 32])
 em = tf.random.uniform(shape=[500, 32])
