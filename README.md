@@ -6,7 +6,7 @@
 | Clang      | 14.0.0     |
 | Tensorflow | 2.10.0-cpu |
 | Python     | 3.9        |
-| Protobuf   | ???        |
+| Protobuf   | 3.19.6     |
 
 ### Run Tests
 
