@@ -38,7 +38,7 @@ function main() {
   cp ${PIP_FILE_PREFIX}setup.py "${TMPDIR}"
   cp ${PIP_FILE_PREFIX}MANIFEST.in "${TMPDIR}"
   cp ${PIP_FILE_PREFIX}LICENSE "${TMPDIR}"
-  rsync -avm -L ${PIP_FILE_PREFIX}tensorflow_nearest_neighbours "${TMPDIR}"
+  rsync -avm -L ${PIP_FILE_PREFIX}nearest_neighbours "${TMPDIR}"
 
   pushd ${TMPDIR}
   echo $(date) : "=== Building wheel"
