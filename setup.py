@@ -6,7 +6,6 @@ from setuptools.command.install import install
 __version__ = '0.0.1'
 
 REQUIRED_PACKAGES = [
-    # 'tensorflow-cpu == 2.10.0',
 ]
 
 project_name = 'nearest_neighbours'
@@ -50,5 +49,5 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     keywords='tensorflow custom op machine learning',
-    python_requires=">=3.7"
+    python_requires=">=3.9"
 )
