@@ -24,7 +24,7 @@ bazel run //nearest_neighbours:nearest_neighbours_ops_py_test
 
 ### Install and Test PIP Package
 
-Once the pip package has been built, you can install it with,
+Once the pip package has been built, you can install it with
 
 ```bash
 pip install artifacts/*.whl
