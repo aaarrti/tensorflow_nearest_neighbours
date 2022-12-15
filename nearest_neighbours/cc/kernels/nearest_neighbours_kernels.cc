@@ -2,25 +2,50 @@
 #include "tensorflow/core/framework/tensor_types.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/platform/types.h"
-#include "functor.h"
+#include "nearest_neighbours.h"
 
-#define EIGEN_USE_THREADS
+#if GOOGLE_CUDA
+#define EIGEN_USE_GPU
+#endif
 
-using namespace Eigen;
 
-class NearestNeighboursOp : public tensorflow::OpKernel {
-public:
-    explicit NearestNeighboursOp(tensorflow::OpKernelConstruction *context)
-            : tensorflow::OpKernel(context) {}
+namespace tensorflow {
 
-    void Compute(tensorflow::OpKernelContext *context) override {
-        // Create inputs
-        const tensorflow::Tensor *token_embeddings = nullptr;
-        const tensorflow::Tensor *embedding_matrix = nullptr;
-        // Check inputs were passed
-        OP_REQUIRES_OK(context, context->input("token_embeddings", &token_embeddings));
-        OP_REQUIRES_OK(context, context->input("embedding_matrix", &embedding_matrix));
+  typedef Eigen::ThreadPoolDevice CPUDevice;
+  typedef Eigen::GpuDevice GPUDevice;
 
+  namespace functor {
+
+    int32_t nearest_neighbour_index(
+        const int32_t vocab_size,
+        const Eigen::Vector<float, Eigen::Dynamic> &embedding,
+        const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
+    ) {
+      auto distances = std::vector<float>(vocab_size);
+
+      const auto embedding_row_major = embedding.transpose();
+
+
+      for (auto matrix_row_index = 0; matrix_row_index != vocab_size; matrix_row_index++) {
+        // Compute distance between current embedding and each matrix row
+        const auto row = embedding_matrix.row(matrix_row_index);
+        const auto dist = static_cast<float>((row - embedding_row_major).squaredNorm());
+        distances[matrix_row_index] = dist;
+      }
+
+      // Find index of the smallest distance
+      const auto it = std::min_element(std::begin(distances), std::end(distances));
+      const auto argmin = static_cast<int32_t>(std::distance(std::begin(distances), it));
+      return argmin;
+    }
+
+
+    template<>
+    struct NearestNeighboursFunctor<CPUDevice> {
+      void operator()(const CPUDevice &device,
+                      const tensorflow::Tensor *token_embeddings,
+                      const tensorflow::Tensor *embedding_matrix,
+                      tensorflow::Tensor *output_tensor) {
         // Get input dims
         const auto batch_size = static_cast<int32_t>(token_embeddings->dim_size(0));
         const auto vocab_size = static_cast<int32_t>(embedding_matrix->dim_size(0));
@@ -29,49 +54,79 @@ public:
         // Shape Input
         auto embedding_matrix_shaped = embedding_matrix->shaped<float, 2>({vocab_size, embedding_dim});
 
-        // Create output
-        tensorflow::Tensor *output_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(0, token_embeddings->shape(), &output_tensor));
         // Reshape for indexing
         const auto output_shaped = output_tensor->shaped<float, 3>(
-                {batch_size, sequence_length, embedding_dim}
+            {batch_size, sequence_length, embedding_dim}
         );
 
         // Convert to Eigen::Matrix for computation
-        const auto eigen_embedding_matrix = Map<const Matrix<float, Dynamic, Dynamic, RowMajor>>(
-                embedding_matrix->flat<float>().data(), vocab_size, embedding_dim
-        );
+        const auto eigen_embedding_matrix = Eigen::Map<
+            const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+        >(embedding_matrix->flat<float>().data(), vocab_size, embedding_dim);
 
-        // Create thread pool for sharded execution
-        auto thread_pool = context->device()->tensorflow_cpu_worker_threads()->workers;
+        for (auto batch_index = 0; batch_index != batch_size; batch_index++) {
+          const auto sequence = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+              token_embeddings->SubSlice(batch_index).flat<float>().data(), vocab_size, embedding_dim
+          );
 
-        auto compute_shard = [&sequence_length, &token_embeddings, &vocab_size, &output_shaped, &embedding_dim,
-                &eigen_embedding_matrix, &embedding_matrix_shaped](int32_t start, int32_t stop) {
+          for (auto token_index = 0; token_index != sequence_length; token_index++) {
+            auto distances = std::vector<float>(vocab_size);
 
-            for (auto batch_index = start; batch_index != stop; batch_index++) {
-                const auto sequence = Map<const Matrix<float, Dynamic, Dynamic, RowMajor>>(
-                        token_embeddings->SubSlice(batch_index).flat<float>().data(), vocab_size, embedding_dim
-                );
+            const auto embedding = sequence.row(token_index);
 
-                for (auto token_index = 0; token_index != sequence_length; token_index++) {
-                    auto distances = std::vector<float>(vocab_size);
+            // Find index of the smallest distance
+            auto argmin = nearest_neighbour_index(vocab_size, embedding, eigen_embedding_matrix);
 
-                    const auto embedding = sequence.row(token_index);
-
-                    // Find index of the smallest distance
-                    auto argmin = nearest_neighbour_index(vocab_size, embedding, eigen_embedding_matrix);
-
-                    // Fill the output
-                    for (auto i = 0; i != embedding_dim; i++) {
-                        output_shaped({batch_index, token_index, i}) = embedding_matrix_shaped({argmin, i});
-                    }
-                }
+            // Fill the output
+            for (auto i = 0; i != embedding_dim; i++) {
+              output_shaped({batch_index, token_index, i}) = embedding_matrix_shaped({argmin, i});
             }
-        };
+          }
+        }
+      }
+    };
 
-        // Run sharded kernel
-        thread_pool->ParallelFor(batch_size, sequence_length, std::move(compute_shard));
-    }
-};
 
-REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(tensorflow::DEVICE_CPU), NearestNeighboursOp)
+    template<typename Device>
+    class NearestNeighboursOp : public tensorflow::OpKernel {
+    public:
+      explicit NearestNeighboursOp(tensorflow::OpKernelConstruction *context) : tensorflow::OpKernel(context) {}
+
+      void Compute(tensorflow::OpKernelContext *context) override {
+        // Create inputs
+        const tensorflow::Tensor *token_embeddings = nullptr;
+        const tensorflow::Tensor *embedding_matrix = nullptr;
+        // Check inputs were passed
+        OP_REQUIRES_OK(context, context->input("token_embeddings", &token_embeddings));
+        OP_REQUIRES_OK(context, context->input("embedding_matrix", &embedding_matrix));
+
+        // Create output
+        tensorflow::Tensor *output_tensor = nullptr;
+        OP_REQUIRES_OK(context, context->allocate_output(0, token_embeddings->shape(), &output_tensor));
+
+        NearestNeighboursFunctor<Device>()(
+            context->eigen_device<Device>(),
+            token_embeddings,
+            embedding_matrix,
+            output_tensor
+        );
+      }
+    };
+
+
+    // Register the CPU kernels.
+#define REGISTER_CPU() REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_CPU), NearestNeighboursOp<CPUDevice>);
+    REGISTER_CPU()
+
+
+#ifdef GOOGLE_CUDA
+#define REGISTER_GPU()  extern template struct NearestNeighboursFunctor<GPUDevice>; \
+                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_GPU), NearestNeighboursOp<GPUDevice>);
+
+
+    REGISTER_GPU()
+#endif
+
+
+  }
+}

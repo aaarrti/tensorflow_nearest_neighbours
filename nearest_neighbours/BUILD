@@ -5,12 +5,10 @@ package(default_visibility = ["//visibility:public"])
 cc_binary(
     name = "python/ops/_nearest_neighbours_ops.so",
     srcs = [
+        #"cc/kernels/nearest_neighbours.cu",
+        "cc/kernels/nearest_neighbours.h",
         "cc/kernels/nearest_neighbours_kernels.cc",
         "cc/ops/nearest_neighbours_ops.cc",
-        "cc/kernels/functor.cpp"
-    ],
-    includes = [
-        "cc/kernels/functor.h"
     ],
     copts = select({
         "//conditions:default": [
@@ -22,6 +20,9 @@ cc_binary(
     features = select({
         "//conditions:default": [],
     }),
+    includes = [
+        "cc/kernels/functor.h",
+    ],
     linkshared = 1,
     deps = [
         "@local_config_tf//:libtensorflow_framework",
