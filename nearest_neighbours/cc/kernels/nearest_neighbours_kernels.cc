@@ -1,12 +1,12 @@
 #include "tensorflow/core/framework/op_kernel.h"
-#include <cmath>
 #include "tensorflow/core/framework/tensor_types.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
-#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+#include "functor.h"
 
 #define EIGEN_USE_THREADS
+
+using namespace Eigen;
 
 class NearestNeighboursOp : public tensorflow::OpKernel {
 public:
@@ -31,63 +31,35 @@ public:
 
         // Create output
         tensorflow::Tensor *output_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(
-                0, token_embeddings->shape(), &output_tensor));
+        OP_REQUIRES_OK(context, context->allocate_output(0, token_embeddings->shape(), &output_tensor));
         // Reshape for indexing
         const auto output_shaped = output_tensor->shaped<float, 3>(
-                {batch_size, sequence_length, embedding_dim});
+                {batch_size, sequence_length, embedding_dim}
+        );
 
         // Convert to Eigen::Matrix for computation
-        const auto eigen_embedding_matrix = Eigen::Map<const Eigen::Matrix<
-                float,          /* scalar element type */
-                Eigen::Dynamic, /* num_rows is a run-time value */
-                Eigen::Dynamic, /* num_cols is a run-time value */
-                Eigen::RowMajor /* tensorflow::Tensor is always row-major */
-        >>(embedding_matrix->flat<float>().data(), /* ptr to data */
-           vocab_size,                             /* num_rows */
-           embedding_dim                           /* num_cols */
+        const auto eigen_embedding_matrix = Map<const Matrix<float, Dynamic, Dynamic, RowMajor>>(
+                embedding_matrix->flat<float>().data(), vocab_size, embedding_dim
         );
 
         // Create thread pool for sharded execution
         auto thread_pool = context->device()->tensorflow_cpu_worker_threads()->workers;
 
-        auto compute_shard = [&sequence_length, &token_embeddings, &vocab_size,
-                &output_shaped, &embedding_dim,
-                &eigen_embedding_matrix, &embedding_matrix_shaped](
-                int32_t start, int32_t stop) {
+        auto compute_shard = [&sequence_length, &token_embeddings, &vocab_size, &output_shaped, &embedding_dim,
+                &eigen_embedding_matrix, &embedding_matrix_shaped](int32_t start, int32_t stop) {
 
             for (auto batch_index = start; batch_index != stop; batch_index++) {
-                const auto sequence = Eigen::Map<const Eigen::Matrix<
-                        float,          /* scalar element type */
-                        Eigen::Dynamic, /* num_rows is a run-time value */
-                        Eigen::Dynamic, /* num_cols is a run-time value */
-                        Eigen::RowMajor /* tensorflow::Tensor is always row-major */
-                >>(token_embeddings->SubSlice(batch_index)
-                           .flat<float>()
-                           .data(),  /* ptr to data */
-                   vocab_size,   /* num_rows */
-                   embedding_dim /* num_cols */
+                const auto sequence = Map<const Matrix<float, Dynamic, Dynamic, RowMajor>>(
+                        token_embeddings->SubSlice(batch_index).flat<float>().data(), vocab_size, embedding_dim
                 );
-
-                auto argmin_vector = std::vector<int32_t>(sequence_length);
 
                 for (auto token_index = 0; token_index != sequence_length; token_index++) {
                     auto distances = std::vector<float>(vocab_size);
 
-                    for (auto matrix_row_index = 0; matrix_row_index != vocab_size; matrix_row_index++) {
-                        // Compute distance between current embedding and each matrix row
-                        const auto row = eigen_embedding_matrix.row(matrix_row_index);
-                        const auto embedding = sequence.row(token_index);
-                        const auto dist =
-                                static_cast<float>((row - embedding).squaredNorm());
-                        distances[matrix_row_index] = dist;
-                    }
+                    const auto embedding = sequence.row(token_index);
 
                     // Find index of the smallest distance
-                    auto it =
-                            std::min_element(std::begin(distances), std::end(distances));
-                    auto argmin =
-                            static_cast<int32_t>(std::distance(std::begin(distances), it));
+                    auto argmin = nearest_neighbour_index(vocab_size, embedding, eigen_embedding_matrix);
 
                     // Fill the output
                     for (auto i = 0; i != embedding_dim; i++) {
@@ -98,7 +70,7 @@ public:
         };
 
         // Run sharded kernel
-        thread_pool->ParallelFor(batch_size, vocab_size * embedding_dim, std::move(compute_shard));
+        thread_pool->ParallelFor(batch_size, sequence_length, std::move(compute_shard));
     }
 };
 
