@@ -64,10 +64,10 @@ py_library(
 
 
 cc_library(
-    name = "time_two_ops_gpu",
+    name = "nearest_neighbours_ops_gpu",
     srcs = [
-        "cc/kernels/time_two.h",
-        "cc/kernels/time_two_kernels.cu.cc",
+        "cc/kernels/nearest_neighbours.h",
+        "cc/kernels/nearest_neighbours.cu",
     ],
     copts = select({
         ":windows": [
@@ -85,7 +85,7 @@ cc_library(
             "-DNOGDI",
             "/d2ReducedOptimizeHugeFunctions",
             "/arch:AVX",
-            "/std:c++14",
+            "/std:c++17",
             "-DTENSORFLOW_MONOLITHIC_BUILD",
             "/DPLATFORM_WINDOWS",
             "/DEIGEN_HAS_C99_MATH",
@@ -99,8 +99,8 @@ cc_library(
         ],
         "//conditions:default": [
             "-pthread",
-            "-std=c++11",
-            "-D_GLIBCXX_USE_CXX11_ABI=0",
+            "-std=c++17",
+            "-D_GLIBCXX_USE_CXX17_ABI=0",
         ],
     }) + if_cuda_is_configured([
         "-DTENSORFLOW_USE_NVCC=1",
