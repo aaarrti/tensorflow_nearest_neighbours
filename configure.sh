@@ -29,6 +29,50 @@ if ! [[ $TF_LFLAGS =~ .*:.* ]]; then
 fi
 
 HEADER_DIR=${TF_CFLAGS:2}
-write_action_env_to_bazelrc "TF_HEADER_DIR" ${HEADER_DIR}
-write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" ${SHARED_LIBRARY_DIR}
+write_action_env_to_bazelrc "TF_HEADER_DIR" "${HEADER_DIR}"
+write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" "${SHARED_LIBRARY_DIR}"
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
+
+# Check if we are building GPU or CPU ops, default CPU
+while [[ "$TF_NEED_CUDA" == "" ]]; do
+  read -p "Do you want to build ops again TensorFlow CPU pip package?" \
+    " Y or enter for CPU (tensorflow-cpu), N for GPU (tensorflow). [Y/n] " INPUT
+  case $INPUT in
+  [Yy]*)
+    echo "Build with CPU pip package."
+    TF_NEED_CUDA=0
+    ;;
+  [Nn]*)
+    echo "Build with GPU pip package."
+    TF_NEED_CUDA=1
+    ;;
+  "")
+    echo "Build with CPU pip package."
+    TF_NEED_CUDA=0
+    ;;
+  *) echo "Invalid selection: " $INPUT ;;
+  esac
+done
+
+write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_CUDA}
+
+if [[ "$TF_NEED_CUDA" == "1" ]]; then
+  if nvcc --version 2 &>/dev/null; then
+    # Determine CUDA version using default nvcc binary
+    CUDA_VERSION=$(nvcc --version | sed -n 's/^.*release \([0-9]\+\.[0-9]\+\).*$/\1/p')
+  elif /usr/local/cuda/bin/nvcc --version 2 &>/dev/null; then
+    # Determine CUDA version using /usr/local/cuda/bin/nvcc binary
+    CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version | sed -n 's/^.*release \([0-9]\+\.[0-9]\+\).*$/\1/p')
+  elif [ -f "/usr/local/cuda/version.txt" ]; then
+    CUDA_VERSION=$(cat /usr/local/cuda/version.txt | sed 's/.* \([0-9]\+\.[0-9]\+\).*/\1/')
+  else
+    CUDA_VERSION=""
+  fi
+  write_action_env_to_bazelrc "TF_CUDA_VERSION" "${CUDA_VERSION}"
+  write_action_env_to_bazelrc "TF_CUDNN_VERSION" "7"
+
+  write_action_env_to_bazelrc "CUDNN_INSTALL_PATH" "/usr/lib/x86_64-linux-gnu"
+  write_action_env_to_bazelrc "CUDA_TOOLKIT_PATH" "/usr/local/cuda"
+  write_to_bazelrc "build --config=cuda"
+  write_to_bazelrc "test --config=cuda"
+fi

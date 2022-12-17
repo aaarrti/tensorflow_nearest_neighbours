@@ -15,8 +15,9 @@ kernel:
 		-o nearest_neighbours/cc/kernels/nearest_neighbours_kernels.metallib
 	clang++ -x objective-c++ -std=c++14 \
 		-shared nearest_neighbours/cc/kernels/nearest_neighbours_kernels.cc \
+		-shared nearest_neighbours/cc/ops/nearest_neighbours_ops.cc \
 		nearest_neighbours/cc/kernels/mtl_nearest_neighbours_kernels.cc \
-		-o nearest_neighbours/cc/kernels/mtl_nearest_neighbours_kernels.so \
+		-o nearest_neighbours/cc/kernels/nearest_neighbours_kernels.so \
 		-fPIC $(TF_CFLAGS) $(TF_LFLAGS) \
 		-O3 -framework Foundation -undefined dynamic_lookup
 

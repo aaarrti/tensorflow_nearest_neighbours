@@ -1,5 +1,5 @@
 
-
+#include "tensorflow/core/platform/types.h"
 #include "nearest_neighbours.h"
 #include "tensorflow/core/util/gpu_kernel_helper.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"

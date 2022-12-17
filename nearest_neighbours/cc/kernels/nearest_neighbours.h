@@ -1,3 +1,5 @@
+#include "tensorflow/core/platform/types.h"
+
 
 namespace tensorflow {
   namespace functor {
