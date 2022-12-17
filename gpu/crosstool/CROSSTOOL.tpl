@@ -571,12 +571,6 @@ toolchain {
   }
   supports_interface_shared_objects: true
 
-  # TODO(pcloudy): Review those flags below, they should be defined by cl.exe
-  compiler_flag: "/DCOMPILER_MSVC"
-
-  # Don't define min/max macros in windows.h.
-  compiler_flag: "/DNOMINMAX"
-
   # Platform defines.
   compiler_flag: "/D_WIN32_WINNT=0x0600"
   # Turn off warning messages.

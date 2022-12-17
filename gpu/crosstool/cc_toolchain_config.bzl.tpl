@@ -1,4 +1,4 @@
-"""cc_toolchain_config rule for configuring CUDA toolchains on Linux, Mac, and Windows."""
+"""cc_toolchain_config rule for configuring CUDA toolchains on Linux, Mac"""
 
 load(
     "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
@@ -237,21 +237,8 @@ def _impl(ctx):
     if (ctx.attr.cpu == "darwin" or
         ctx.attr.cpu == "local"):
         action_configs = []
-    elif (ctx.attr.cpu == "x64_windows"):
-        action_configs = [
-            assemble_action,
-            preprocess_assemble_action,
-            c_compile_action,
-            cpp_compile_action,
-            cpp_link_executable_action,
-            cpp_link_dynamic_library_action,
-            cpp_link_nodeps_dynamic_library_action,
-            cpp_link_static_library_action,
-        ]
     else:
         fail("Unreachable")
-
-    no_windows_export_all_symbols_feature = feature(name = "no_windows_export_all_symbols")
 
     pic_feature = feature(
         name = "pic",

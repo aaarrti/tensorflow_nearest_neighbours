@@ -63,7 +63,7 @@ if [[ "$TF_NEED_CUDA" == "1" ]]; then
     CUDA_VERSION=""
   fi
   write_action_env_to_bazelrc "TF_CUDA_VERSION" "${CUDA_VERSION}"
-  # TODO parse version from cat /usr/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
+  # TODO parse version from cat /usr/include/cudnn_version.h | grep CUDNN_MAJOR
   write_action_env_to_bazelrc "TF_CUDNN_VERSION" "8"
 
   write_action_env_to_bazelrc "CUDNN_INSTALL_PATH" "/usr/lib/x86_64-linux-gnu"
