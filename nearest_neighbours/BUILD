@@ -2,6 +2,8 @@ licenses(["notice"])  # Apache 2.0
 
 package(default_visibility = ["//visibility:public"])
 
+load("@local_config_cuda//cuda:build_defs.bzl", "if_cuda", "if_cuda_is_configured")
+
 cc_binary(
     name = "python/ops/_nearest_neighbours_ops.so",
     srcs = [
@@ -67,7 +69,7 @@ cc_library(
     name = "nearest_neighbours_ops_gpu",
     srcs = [
         "cc/kernels/nearest_neighbours.h",
-        "cc/kernels/nearest_neighbours.cu",
+        "cc/kernels/nearest_neighbours_kernels.cu",
     ],
     copts = select({
         ":windows": [
