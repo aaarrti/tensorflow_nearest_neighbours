@@ -8,6 +8,7 @@ cc_binary(
     name = "python/ops/_nearest_neighbours_ops.so",
     srcs = [
         "cc/kernels/nearest_neighbours.h",
+        "cc/kernels/nearest_neighbours.cc",
         "cc/kernels/nearest_neighbours_kernels.cc",
         "cc/ops/nearest_neighbours_ops.cc",
     ],
