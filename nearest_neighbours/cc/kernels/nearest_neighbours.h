@@ -1,4 +1,4 @@
-#include "tensorflow/core/platform/types.h"
+#include "external/local_config_tf/include/tensorflow/core/platform/types.h"
 
 
 namespace tensorflow {
@@ -12,10 +12,12 @@ namespace tensorflow {
 
     template<typename Device>
     struct NearestNeighboursFunctor {
-      void operator()(const Device &d,
-                      const tensorflow::Tensor *token_embeddings,
-                      const tensorflow::Tensor *embedding_matrix,
-                      tensorflow::Tensor *output_tensor);
+      void operator()(
+          const Device &d,
+          const tensorflow::Tensor *token_embeddings,
+          const tensorflow::Tensor *embedding_matrix,
+          tensorflow::Tensor *output_tensor
+      );
     };
   }
 }

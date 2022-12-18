@@ -33,8 +33,6 @@ done
 TF_CFLAGS=($(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))'))
 TF_LFLAGS="$(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')"
 
-write_to_bazelrc "build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true"
-
 write_to_bazelrc "build --spawn_strategy=standalone"
 write_to_bazelrc "build --strategy=Genrule=standalone"
 write_to_bazelrc "build -c opt"
@@ -53,6 +51,7 @@ write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
 write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_CUDA}
 
 if [[ "$TF_NEED_CUDA" == "1" ]]; then
+  write_to_bazelrc "build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true"
   if nvcc --version 2 &>/dev/null; then
     # Determine CUDA version using default nvcc binary
     CUDA_VERSION=$(nvcc --version | sed -n 's/^.*release \([0-9]\+\.[0-9]\+\).*$/\1/p')

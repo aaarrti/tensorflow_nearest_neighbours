@@ -13,7 +13,6 @@ namespace tensorflow {
 
       const auto embedding_row_major = embedding.transpose();
 
-
       for (auto matrix_row_index = 0; matrix_row_index != vocab_size; matrix_row_index++) {
         // Compute distance between current embedding and each matrix row
         const auto row = embedding_matrix.row(matrix_row_index);

@@ -2,7 +2,7 @@
 #include "tensorflow/core/framework/tensor_types.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/platform/types.h"
-#include "nearest_neighbours.h"
+#include "nearest_neighbours/cc/kernels/nearest_neighbours.h"
 
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
@@ -15,9 +15,6 @@ namespace tensorflow {
   typedef Eigen::GpuDevice GPUDevice;
 
   namespace functor {
-
-
-
 
     template<>
     struct NearestNeighboursFunctor<CPUDevice> {

@@ -7,7 +7,6 @@ load("@local_config_cuda//cuda:build_defs.bzl", "if_cuda", "if_cuda_is_configure
 cc_binary(
     name = "python/ops/_nearest_neighbours_ops.so",
     srcs = [
-        "cc/kernels/nearest_neighbours.h",
         "cc/kernels/nearest_neighbours.cc",
         "cc/kernels/nearest_neighbours_kernels.cc",
         "cc/ops/nearest_neighbours_ops.cc",
@@ -22,6 +21,9 @@ cc_binary(
     features = select({
         "//conditions:default": [],
     }),
+    includes = [
+        "cc/kernels/nearest_neighbours.h",
+    ],
     linkshared = 1,
     deps = [
         "@local_config_tf//:libtensorflow_framework",
@@ -65,11 +67,10 @@ py_library(
     ],
 )
 
-
 cc_library(
     name = "nearest_neighbours_ops_gpu",
     srcs = [
-        "cc/kernels/nearest_neighbours.h",
+        "cc/kernels/nearest_neighbours.cc",
         "cc/kernels/nearest_neighbours_kernels.cu",
     ],
     copts = select({
@@ -85,6 +86,9 @@ cc_library(
         "-nvcc_options=relaxed-constexpr",
         "-nvcc_options=ftz=true",
     ]),
+    includes = [
+        "cc/kernels/nearest_neighbours.h",
+    ],
     linkopts = [],
     deps = [
         "@local_config_tf//:libtensorflow_framework",
