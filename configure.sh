@@ -14,6 +14,8 @@ function write_action_env_to_bazelrc() {
 # Remove .bazelrc if it already exist
 [ -e .bazelrc ] && rm .bazelrc
 
+write_action_env_to_bazelrc "TMP" "/tmp"
+
 
 # Check if we are building GPU or CPU ops, default CPU
 while [[ "$TF_NEED_CUDA" == "" ]]; do
