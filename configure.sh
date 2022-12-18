@@ -11,10 +11,22 @@ function write_action_env_to_bazelrc() {
   write_to_bazelrc "build --action_env $1=\"$2\""
 }
 
+function is_linux() {
+  [[ "${PLATFORM}" == "linux" ]]
+}
+
 # Remove .bazelrc if it already exist
 [ -e .bazelrc ] && rm .bazelrc
 
 write_action_env_to_bazelrc "TMP" "/tmp"
+
+
+# Add Ubuntu toolchain flags
+if is_linux; then
+  write_to_bazelrc "build:manylinux_cuda --crosstool_top=//third_party/toolchains/preconfig/ubuntu16.04/gcc_manylinux-nvcc-cuda:toolchain"
+  write_to_bazelrc "build --config=manylinux_cuda"
+    write_to_bazelrc "test --config=manylinux_cuda"
+fi
 
 
 # Check if we are building GPU or CPU ops, default CPU

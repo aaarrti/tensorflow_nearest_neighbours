@@ -3,3 +3,7 @@ ERROR: /home/artem/tf_nearest_neighbours/nearest_neighbours/BUILD:68:11: in deps
 ERROR: /home/artem/tf_nearest_neighbours/nearest_neighbours/BUILD:68:11: Analysis of target '//nearest_neighbours:nearest_neighbours_ops_gpu' failed
 ERROR: Analysis of target '//nearest_neighbours:nearest_neighbours_ops_gpu' failed; build aborted: 
 ```
+
+```shell
+export PATH="$PATH:$HOME/bin"
+```
