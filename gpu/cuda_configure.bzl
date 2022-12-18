@@ -591,6 +591,7 @@ def find_cuda_config(repository_ctx, cuda_libraries):
         repository_ctx.path(Label("//gpu:find_cuda_config.py")),
     ] + cuda_libraries)
     if exec_result.return_code:
+        print("return_code=")
         auto_configure_fail("Failed to run find_cuda_config.py: %s" % exec_result.stderr)
 
     # Parse the dict from stdout.
@@ -611,7 +612,17 @@ def _get_cuda_config(repository_ctx):
           compute_capabilities: A list of the system's CUDA compute capabilities.
           cpu_value: The name of the host operating system.
       """
-    config = find_cuda_config(repository_ctx, ["cuda", "cudnn"])
+    #config = find_cuda_config(repository_ctx, ["cuda", "cudnn"])
+    config = {
+        "cuda_toolkit_path": "/usr/local/cuda/bin/",
+        "cuda_version": "11.7",
+        "cudnn_version": 8,
+        "cuda_include_dir": "/use/local/cuda/include/",
+        "cublas_include_dir": "/usr/local/cuda/include/",
+        "cudnn_include_dir" : "/usr/local/cuda/include/",
+        "cupti_include_dir" : "/usr/local/cuda/include/",
+        "nvvm_library_dir":  "/usr/local/cuda/include/",
+    }
     cpu_value = get_cpu_value(repository_ctx)
     toolkit_path = config["cuda_toolkit_path"]
 
@@ -871,6 +882,8 @@ def _compute_cuda_extra_copts(repository_ctx, compute_capabilities):
 def _create_local_cuda_repository(repository_ctx):
     """Creates the repository containing files set up to build with CUDA."""
     cuda_config = _get_cuda_config(repository_ctx)
+    print("cuda_config = ")
+    print(cuda_config)
 
     cuda_include_path = cuda_config.config["cuda_include_dir"]
     cublas_include_path = cuda_config.config["cublas_include_dir"]
