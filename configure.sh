@@ -44,8 +44,8 @@ if ! [[ $TF_LFLAGS =~ .*:.* ]]; then
 fi
 
 HEADER_DIR=${TF_CFLAGS:2}
-write_action_env_to_bazelrc "TF_HEADER_DIR" "${HEADER_DIR}"
-write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" "${SHARED_LIBRARY_DIR}"
+write_action_env_to_bazelrc "TF_HEADER_DIR" ${HEADER_DIR}
+write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" ${SHARED_LIBRARY_DIR}
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
 
 write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_CUDA}

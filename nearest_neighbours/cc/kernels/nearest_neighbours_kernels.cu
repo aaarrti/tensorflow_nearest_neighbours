@@ -40,10 +40,12 @@ namespace tensorflow {
 
     template<>
     struct NearestNeighboursFunctor<GPUDevice> {
-      void operator()(const GPUDevice &device,
-                      const tensorflow::Tensor *token_embeddings,
-                      const tensorflow::Tensor *embedding_matrix,
-                      tensorflow::Tensor *output_tensor) {
+      void operator()(
+          const GPUDevice &device,
+          const tensorflow::Tensor *token_embeddings,
+          const tensorflow::Tensor *embedding_matrix,
+          tensorflow::Tensor *output_tensor
+      ) {
 
         const auto batch_size = static_cast<int32_t>(token_embeddings->dim_size(0));
         const auto vocab_size = static_cast<int32_t>(embedding_matrix->dim_size(0));
@@ -64,7 +66,7 @@ namespace tensorflow {
     };
 
 // Explicitly instantiate functors for the types of OpKernels registered.
-    template
+    template<>
     struct NearestNeighboursFunctor<GPUDevice>;
   } // end namespace functor
 } // end namespace tensorflow
