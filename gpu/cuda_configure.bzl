@@ -691,6 +691,7 @@ def find_cuda_config(repository_ctx, cuda_libraries):
         repository_ctx.path(Label("//gpu:find_cuda_config.py")),
     ] + cuda_libraries)
     if exec_result.return_code:
+        print("return_code=")
         auto_configure_fail("Failed to run find_cuda_config.py: %s" % exec_result.stderr)
 
     # Parse the dict from stdout.
@@ -711,7 +712,17 @@ def _get_cuda_config(repository_ctx):
           compute_capabilities: A list of the system's CUDA compute capabilities.
           cpu_value: The name of the host operating system.
       """
-    config = find_cuda_config(repository_ctx, ["cuda", "cudnn"])
+    #config = find_cuda_config(repository_ctx, ["cuda", "cudnn"])
+    config = {
+        "cuda_toolkit_path": "/usr/local/cuda/bin/",
+        "cuda_version": "11.7",
+        "cudnn_version": 8,
+        "cuda_include_dir": "/use/local/cuda/include/",
+        "cublas_include_dir": "/usr/local/cuda/include/",
+        "cudnn_include_dir" : "/usr/local/cuda/include/",
+        "cupti_include_dir" : "/usr/local/cuda/include/",
+        "nvvm_library_dir":  "/usr/local/cuda/include/",
+    }
     cpu_value = get_cpu_value(repository_ctx)
     toolkit_path = config["cuda_toolkit_path"]
 
@@ -720,8 +731,8 @@ def _get_cuda_config(repository_ctx):
     cuda_major = cuda_version[0]
     cuda_minor = cuda_version[1]
 
-    cuda_version = ("64_%s%s" if is_windows else "%s.%s") % (cuda_major, cuda_minor)
-    cudnn_version = ("64_%s" if is_windows else "%s") % config["cudnn_version"]
+    cuda_version = "%s.%s" % (cuda_major, cuda_minor)
+    cudnn_version = "%s" % config["cudnn_version"]
 
     # cuda_lib_version is for libraries like cuBLAS, cuFFT, cuSOLVER, etc.
     # It changed from 'x.y' to just 'x' in CUDA 10.1.
@@ -983,6 +994,8 @@ def _compute_cuda_extra_copts(repository_ctx, compute_capabilities):
 def _create_local_cuda_repository(repository_ctx):
     """Creates the repository containing files set up to build with CUDA."""
     cuda_config = _get_cuda_config(repository_ctx)
+    print("cuda_config = ")
+    print(cuda_config)
 
     cuda_include_path = cuda_config.config["cuda_include_dir"]
     cublas_include_path = cuda_config.config["cublas_include_dir"]
