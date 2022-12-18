@@ -95,10 +95,6 @@ cc_toolchain_config(
     linker_bin_path = "%{linker_bin_path}",
 )
 
-
-
-
-
 filegroup(
     name = "empty",
     srcs = [],

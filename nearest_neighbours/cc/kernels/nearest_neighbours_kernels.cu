@@ -1,6 +1,6 @@
 
 #include "tensorflow/core/platform/types.h"
-#include "nearest_neighbours.h"
+//#include "nearest_neighbours.h"
 #include "tensorflow/core/util/gpu_kernel_helper.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 
@@ -30,10 +30,10 @@ namespace tensorflow {
       auto distances = std::vector<float>(vocab_size);
       const auto embedding = sequence.row(threadId.y);
       // Find index of the smallest distance
-      auto argmin = nearest_neighbour_index(vocab_size, embedding, eigen_embedding_matrix);
+      //auto argmin = nearest_neighbour_index(vocab_size, embedding, eigen_embedding_matrix);
       // Fill the output
       for (auto i = 0; i != embedding_dim; i++) {
-        output_shaped({threadId.x, threadId.y, i}) = embedding_matrix_shaped({argmin, i});
+        //output_shaped({threadId.x, threadId.y, i}) = embedding_matrix_shaped({argmin, i});
       }
     }
 

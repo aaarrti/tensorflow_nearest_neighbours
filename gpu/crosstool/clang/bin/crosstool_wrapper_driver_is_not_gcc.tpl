@@ -28,6 +28,7 @@ DESCRIPTION:
   present, this wrapper invokes hybrid_driver_is_not_gcc with the input
   arguments as is.
 
+
 NOTES:
   Changes to the contents of this file must be propagated from
   //third_party/gpus/crosstool/crosstool_wrapper_is_not_gcc to
@@ -115,15 +116,6 @@ def GetHostCompilerOptions(argv):
     return opts
 
 
-def _update_options(nvcc_options):
-    if NVCC_VERSION in ("7.0",):
-        return nvcc_options
-
-    update_options = {"relaxed-constexpr": "expt-relaxed-constexpr"}
-    return [update_options[opt] if opt in update_options else opt
-            for opt in nvcc_options]
-
-
 def GetNvccOptions(argv):
     """Collect the -nvcc_options values from argv.
 
@@ -140,7 +132,6 @@ def GetNvccOptions(argv):
     args, _ = parser.parse_known_args(argv)
 
     if args.nvcc_options:
-        options = _update_options(sum(args.nvcc_options, []))
         return ' '.join(['--' + a for a in options])
     return ''
 
@@ -170,7 +161,7 @@ def InvokeNvcc(argv, log=False):
     undefines = ''.join([' -U' + define for define in undefines])
     std_options = GetOptionValue(argv, 'std')
     # currently only c++11 is supported by Cuda 7.0 std argument
-    nvcc_allowed_std_options = ["c++11"]
+    nvcc_allowed_std_options = ["c++17"]
     std_options = ''.join([' -std=' + define
                            for define in std_options if define in nvcc_allowed_std_options])
 
