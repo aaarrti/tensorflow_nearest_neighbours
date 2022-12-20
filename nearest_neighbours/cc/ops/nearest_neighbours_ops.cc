@@ -16,7 +16,7 @@ REGISTER_OP("NearestNeighbours")
                       c->set_output(0, c->MakeShape(
                           {c->Dim(token_embeddings_shape_handle, 0), c->Dim(token_embeddings_shape_handle, 1),
                            c->Dim(token_embeddings_shape_handle, 2)}));
-                      return Status::OK();
+                      return OkStatus();
                     }
         );
 

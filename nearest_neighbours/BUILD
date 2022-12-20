@@ -15,8 +15,8 @@ cc_binary(
     copts = select({
         "//conditions:default": [
             "-pthread",
-            "-std=c++17",
-            "-D_GLIBCXX_USE_CXX17_ABI=1",
+            "-std=c++14",
+            "-D_GLIBCXX_USE_CXX11_ABI=0",
         ],
     }),
     features = select({
@@ -96,8 +96,8 @@ cc_library(
     copts = select({
         "//conditions:default": [
             "-pthread",
-            "-std=c++17",
-            "-D_GLIBCXX_USE_CXX17_ABI=1",
+            "-std=c++14",
+            "-D_GLIBCXX_USE_CXX11_ABI=0",
         ],
     }) + if_cuda_is_configured([
         "-DTENSORFLOW_USE_NVCC=1",
