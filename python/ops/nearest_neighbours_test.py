@@ -6,7 +6,7 @@ from tensorflow.python.framework import test_util
 from tensorflow.python.framework import ops
 
 try:
-    from nearest_neighbours.python.ops.nearest_neighbours_ops import nearest_neighbours
+    from python.ops.nearest_neighbours_ops import nearest_neighbours
 except ImportError:
     from nearest_neighbours_ops import nearest_neighbours
 
@@ -75,52 +75,6 @@ class NearestNeighboursTest(test.TestCase):
             expected = py_nearest_neighbours_batch(x, em)
 
         self.assertAllClose(result, expected)
-
-
-class NearestNeighboursGPUTest(test.TestCase):
-
-    @test_util.run_gpu_only
-    def testNoNoiseAdded(self):
-        with self.test_session():
-            with ops.device("/gpu:0"):
-                em = tf.random.uniform(shape=[50, 32])
-                x = tf.convert_to_tensor([[em[0], em[0], em[0]], [em[0], em[0], em[0]]])
-                expected = x
-                result = nearest_neighbours(x, em)
-
-            self.assertAllClose(result, expected)
-
-    @test_util.run_gpu_only
-    def testSmallEM(self):
-        with self.test_session():
-            with ops.device("/gpu:0"):
-                em = tf.random.uniform(shape=[50, 32])
-                x = tf.random.uniform(shape=[8, 10, 32])
-                result = nearest_neighbours(x, em)
-                expected = py_nearest_neighbours_batch(x, em)
-
-            self.assertAllClose(result, expected)
-
-    def testBigEM(self):
-        with self.test_session():
-            with ops.device("/gpu:0"):
-                em = tf.random.uniform(shape=[15000, 512])
-                x = tf.random.uniform(shape=[8, 10, 512])
-                result = nearest_neighbours(x, em)
-                expected = py_nearest_neighbours_batch(x, em)
-
-            self.assertAllClose(result, expected)
-
-    @test_util.run_gpu_only
-    def testBigBatch(self):
-        with self.test_session():
-            with ops.device("/gpu:0"):
-                em = tf.random.uniform(shape=[1500, 512])
-                x = tf.random.uniform(shape=[32, 65, 512])
-                result = nearest_neighbours(x, em)
-                expected = py_nearest_neighbours_batch(x, em)
-
-            self.assertAllClose(result, expected)
 
 
 if __name__ == "__main__":

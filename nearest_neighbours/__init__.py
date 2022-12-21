@@ -1,1 +1,0 @@
-from nearest_neighbours.python.ops.nearest_neighbours_ops import nearest_neighbours

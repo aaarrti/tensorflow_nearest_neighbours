@@ -49,5 +49,5 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     keywords='tensorflow custom op machine learning',
-    python_requires=">=3.9"
+    python_requires=">=3.8"
 )

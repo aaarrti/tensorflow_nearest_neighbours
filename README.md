@@ -48,8 +48,8 @@ print(result.shape)
 - [Create an Op](https://www.tensorflow.org/guide/create_op)
 - [TensorFlow Custom Op](https://github.com/tensorflow/custom-op)
 
-## TODO:
 
-- Add GPU (Metal) Implementation
-  Reference: [Customizing a TensorFlow operation](https://developer.apple.com/documentation/metal/metal_sample_code_library/customizing_a_tensorflow_operation)
-  
+## Build Metal Version:
+```shell
+make metal_kernel
+```
