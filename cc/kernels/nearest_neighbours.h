@@ -7,11 +7,11 @@ namespace tensorflow {
     template<typename T>
     int32_t nearest_neighbour_index(
         const int32_t vocab_size,
-        const Eigen::Vector<T, Eigen::Dynamic> &embedding,
-        const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
+        const Eigen::Vector <T, Eigen::Dynamic> &embedding,
+        const Eigen::Matrix <T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
     );
 
-    template<typename T, typename Device>
+    template<typename Device, typename T>
     struct NearestNeighboursFunctor {
       void operator()(
           const Device &d,

@@ -1,14 +1,16 @@
-TF_CFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
-TF_LFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')
+TF_CFLAGS=$(shell python3.9 -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
+TF_LFLAGS=$(shell python3.9 -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')
 
-CFLAGS = ${TF_CFLAGS} -fPIC -O2 -std=c++17
-LDFLAGS = -shared ${TF_LFLAGS}
 
-TARGET_LIB = build/_nearest_neighbours_ops.so
 CPU_SRC = cc/ops/nearest_neighbours_ops.cc cc/kernels/nearest_neighbours_kernels.cc
+CUDA_LIB = build/_nearest_neighbours_ops.cu.o
+
+C_FLAGS = $(TF_CFLAGS) -fPIC -O3 -std=c++17
+L_FLAGS = -shared $(TF_LFLAGS)
+TARGET_FLAG = -o build/_nearest_neighbours_ops.so
 
 test:
-	cd tests; python nearest_neighbours_test.py
+	python3.9 python/nearest_neighbours_test.py
 
 pip_pkg:
 	cp -f setup.py build
@@ -16,22 +18,25 @@ pip_pkg:
 	cp -f python/nearest_neighbours.py build
 	cd build; python3 setup.py bdist_wheel
 
-cpu_kernel: clean
-	mkdir build
-	g++ $(CFLAGS) $(LDFLAGS) $(CPU_SRC) -o $(TARGET_LIB) -O3
+cpu_kernel:
+	clang++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) $(TARGET_FLAG)
 
-cuda_kernel: clean
-	mkdir build
-	nvcc -std=c++11 $(CFLAGS) $(LDFLAGS) -D CUDA=1 -shared $(CPU_SRC) cuda/nearest_neighbours_kernels.cu -o $(TARGET_LIB) -O3
+cuda_kernel:
+	nvcc -c $(TF_CFLAGS) -D CUDA=1 -x cu -Xcompiler -fPIC --expt-relaxed-constexpr \
+	cc/kernels/nearest_neighbours_kernels.cu -o $(CUDA_LIB)
+	clang++ $(CFLAGS) $(LDFLAGS) -D CUDA=1  \
+	-I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart \
+	$(CPU_SRC) $(CUDA_LIB)
 
-metal_kernel: clean
-	mkdir build
-	xcrun -sdk macosx metal -c metal/nearest_neighbours_kernels.metal -o build/nearest_neighbours_kernels.air -ffast-math
-	xcrun -sdk macosx metallib build/nearest_neighbours_kernels.air -o build/nearest_neighbours_kernels.metallib
 
-	clang++ -x objective-c++ -std=c++14 -shared cc/ops/nearest_neighbours_ops.cc -shared cc/kernels/nearest_neighbours_kernels.cc \
-    metal/metal_nearest_neighbours_kernels.cc -o build/_nearest_neighbours_ops.so -fPIC $(TF_CFLAGS) $(TF_LFLAGS) -O3 -framework Foundation -undefined dynamic_lookup
+metal_kernel:
+	#xcrun -sdk macosx metal -c cc/kernels/nearest_neighbours_kernels.metal -o build/_nearest_neighbours_kernels.air -ffast-math
+	#xcrun -sdk macosx metallib build/_nearest_neighbours_kernels.air -o build/_nearest_neighbours_kernels.metallib
+
+	clang++ -x objective-c++ $(C_FLAGS) $(L_FLAGS) -framework Foundation \
+	cc/kernels/nearest_neighbours_kernels_metal.cc $(CPU_SRC) $(TARGET_FLAG)
 
 
 clean:
-	rm -r -f build
+	rm -r -f build/*
+

@@ -2,8 +2,7 @@
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/types.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-
-#include "nearest_neighbours_kernels.h"
+#include "nearest_neighbours.h"
 
 #if CUDA
 #define EIGEN_USE_GPU
@@ -20,17 +19,17 @@ namespace tensorflow {
     template<typename T>
     int32_t nearest_neighbour_index(
         const int32_t vocab_size,
-        const Eigen::Vector<T, Eigen::Dynamic> &embedding,
-        const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
+        const Eigen::Vector <T, Eigen::Dynamic> &embedding,
+        const Eigen::Matrix <T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
     ) {
-      auto distances = std::vector<float>(vocab_size);
+      auto distances = std::vector<T>(vocab_size);
 
       const auto embedding_row_major = embedding.transpose();
 
       for (auto matrix_row_index = 0; matrix_row_index != vocab_size; matrix_row_index++) {
         // Compute distance between current embedding and each matrix row
         const auto row = embedding_matrix.row(matrix_row_index);
-        const auto dist = static_cast<float>((row - embedding_row_major).squaredNorm());
+        const auto dist = static_cast<T>((row - embedding_row_major).squaredNorm());
         distances[matrix_row_index] = dist;
       }
 
@@ -41,7 +40,7 @@ namespace tensorflow {
     }
 
     template<typename T>
-    struct NearestNeighboursFunctor<T, CPUDevice> {
+    struct NearestNeighboursFunctor<CPUDevice, T> {
       void operator()(
           const CPUDevice &device,
           const tensorflow::Tensor *token_embeddings,
@@ -61,11 +60,11 @@ namespace tensorflow {
 
         // Convert to Eigen::Matrix for computation
         const auto eigen_embedding_matrix = Eigen::Map<
-            const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+            const Eigen::Matrix <T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
         >(embedding_matrix->flat<T>().data(), vocab_size, embedding_dim);
 
         for (auto batch_index = 0; batch_index != batch_size; batch_index++) {
-          const auto sequence = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          const auto sequence = Eigen::Map<const Eigen::Matrix <T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
               token_embeddings->SubSlice(batch_index).flat<T>().data(), vocab_size, embedding_dim
           );
 
@@ -87,7 +86,7 @@ namespace tensorflow {
     };
 
 
-    template<typename T, typename Device>
+    template<typename Device, typename T>
     class NearestNeighboursOp : public tensorflow::OpKernel {
     public:
       explicit NearestNeighboursOp(tensorflow::OpKernelConstruction *context) : tensorflow::OpKernel(context) {}
@@ -104,7 +103,7 @@ namespace tensorflow {
         tensorflow::Tensor *output_tensor = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, token_embeddings->shape(), &output_tensor));
 
-        NearestNeighboursFunctor<T, Device>()(
+        NearestNeighboursFunctor<Device, T>()(
             context->eigen_device<Device>(),
             token_embeddings,
             embedding_matrix,
@@ -114,13 +113,13 @@ namespace tensorflow {
     };
 
 
-#define REGISTER_CPU() REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_CPU), NearestNeighboursOp<float, CPUDevice>);
+#define REGISTER_CPU() REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_CPU), NearestNeighboursOp<CPUDevice, float>);
     REGISTER_CPU()
 
 
 #ifdef CUDA
-#define REGISTER_GPU() extern template struct NearestNeighboursFunctor<float, GPUDevice>; \
-                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_GPU), NearestNeighboursOp<float, GPUDevice>);
+#define REGISTER_GPU() extern template struct NearestNeighboursFunctor<GPUDevice, float>; \
+                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_GPU), NearestNeighboursOp<GPUDevice, float>);
     REGISTER_GPU()
 #endif
 

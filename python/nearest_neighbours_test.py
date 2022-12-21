@@ -6,7 +6,9 @@ from tensorflow.python.platform import test
 from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
 
-nearest_neighbours = load_library.load_op_library(resource_loader.get_path_to_datafile("../build/_nearest_neighbours_ops.so")).nearest_neighbours
+nearest_neighbours = load_library.load_op_library(
+    resource_loader.get_path_to_datafile("../build/_nearest_neighbours_ops.so")
+).nearest_neighbours
 
 
 @tf.function

@@ -1,16 +1,15 @@
 # TensorFlow Nearest Neighbours Op
 
 
-| Tool         | Version |
-|--------------|---------|
-| Clang        | 14.0.0  |
-| Tensorflow   | 2.11.0  |
-| Python       | 3.9     |
- | gcc          |         |
-| cuda         |         | 
-| nvcc         |         | 
-| metal        |         | 
-| metallib     |         |
+| Tool       | Ubuntu Version | MacOS Version       |
+|------------|----------------|---------------------|
+| Clang      | 10.0.0         | 14.0.0              |
+| Tensorflow | 2.11.0         | 2.11.0              |
+| Python     | 3.9            | 3.9                 |
+| cuda       | 11.2           | -                   | 
+| nvcc       | V11.2.152      | -                   | 
+| metal      | -              | 31001.667           | 
+| metallib   | -              | 31001.667           |                                             
 
 ### Example usage:
 
