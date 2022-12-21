@@ -1,9 +1,9 @@
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/types.h"
+#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 
-#include "Eigen/CXX11/Tensor"
-#include "nearest_neighbours.h"
+#include "nearest_neighbours_kernels.h"
 
 #if CUDA
 #define EIGEN_USE_GPU
@@ -17,10 +17,11 @@ namespace tensorflow {
 
   namespace functor {
 
+    template<typename T>
     int32_t nearest_neighbour_index(
         const int32_t vocab_size,
-        const Eigen::Vector<float, Eigen::Dynamic> &embedding,
-        const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
+        const Eigen::Vector<T, Eigen::Dynamic> &embedding,
+        const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
     ) {
       auto distances = std::vector<float>(vocab_size);
 
@@ -39,42 +40,42 @@ namespace tensorflow {
       return argmin;
     }
 
-    template<>
-    struct NearestNeighboursFunctor<CPUDevice> {
-      void operator()(const CPUDevice &device,
-                      const tensorflow::Tensor *token_embeddings,
-                      const tensorflow::Tensor *embedding_matrix,
-                      tensorflow::Tensor *output_tensor) {
+    template<typename T>
+    struct NearestNeighboursFunctor<T, CPUDevice> {
+      void operator()(
+          const CPUDevice &device,
+          const tensorflow::Tensor *token_embeddings,
+          const tensorflow::Tensor *embedding_matrix,
+          tensorflow::Tensor *output_tensor
+      ) {
         // Get input dims
         const auto batch_size = static_cast<int32_t>(token_embeddings->dim_size(0));
         const auto vocab_size = static_cast<int32_t>(embedding_matrix->dim_size(0));
         const auto sequence_length = static_cast<int32_t>(token_embeddings->dim_size(1));
         const auto embedding_dim = static_cast<int32_t>(token_embeddings->dim_size(2));
         // Shape Input
-        auto embedding_matrix_shaped = embedding_matrix->shaped<float, 2>({vocab_size, embedding_dim});
+        auto embedding_matrix_shaped = embedding_matrix->shaped<T, 2>({vocab_size, embedding_dim});
 
         // Reshape for indexing
-        const auto output_shaped = output_tensor->shaped<float, 3>(
-            {batch_size, sequence_length, embedding_dim}
-        );
+        const auto output_shaped = output_tensor->shaped<T, 3>({batch_size, sequence_length, embedding_dim});
 
         // Convert to Eigen::Matrix for computation
         const auto eigen_embedding_matrix = Eigen::Map<
-            const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-        >(embedding_matrix->flat<float>().data(), vocab_size, embedding_dim);
+            const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+        >(embedding_matrix->flat<T>().data(), vocab_size, embedding_dim);
 
         for (auto batch_index = 0; batch_index != batch_size; batch_index++) {
-          const auto sequence = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
-              token_embeddings->SubSlice(batch_index).flat<float>().data(), vocab_size, embedding_dim
+          const auto sequence = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+              token_embeddings->SubSlice(batch_index).flat<T>().data(), vocab_size, embedding_dim
           );
 
           for (auto token_index = 0; token_index != sequence_length; token_index++) {
-            auto distances = std::vector<float>(vocab_size);
+            auto distances = std::vector<T>(vocab_size);
 
             const auto embedding = sequence.row(token_index);
 
             // Find index of the smallest distance
-            auto argmin = nearest_neighbour_index(vocab_size, embedding, eigen_embedding_matrix);
+            auto argmin = nearest_neighbour_index<T>(vocab_size, embedding, eigen_embedding_matrix);
 
             // Fill the output
             for (auto i = 0; i != embedding_dim; i++) {
@@ -86,7 +87,7 @@ namespace tensorflow {
     };
 
 
-    template<typename Device>
+    template<typename T, typename Device>
     class NearestNeighboursOp : public tensorflow::OpKernel {
     public:
       explicit NearestNeighboursOp(tensorflow::OpKernelConstruction *context) : tensorflow::OpKernel(context) {}
@@ -103,7 +104,7 @@ namespace tensorflow {
         tensorflow::Tensor *output_tensor = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, token_embeddings->shape(), &output_tensor));
 
-        NearestNeighboursFunctor<Device>()(
+        NearestNeighboursFunctor<T, Device>()(
             context->eigen_device<Device>(),
             token_embeddings,
             embedding_matrix,
@@ -113,19 +114,15 @@ namespace tensorflow {
     };
 
 
-    // Register the CPU kernels.
-#define REGISTER_CPU() REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_CPU), NearestNeighboursOp<CPUDevice>);
+#define REGISTER_CPU() REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_CPU), NearestNeighboursOp<float, CPUDevice>);
     REGISTER_CPU()
 
 
 #ifdef CUDA
-#define REGISTER_GPU()  extern template struct NearestNeighboursFunctor<GPUDevice>; \
-                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_GPU), NearestNeighboursOp<GPUDevice>);
-
-
+#define REGISTER_GPU() extern template struct NearestNeighboursFunctor<float, GPUDevice>; \
+                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_GPU), NearestNeighboursOp<float, GPUDevice>);
     REGISTER_GPU()
 #endif
-
 
   }
 }

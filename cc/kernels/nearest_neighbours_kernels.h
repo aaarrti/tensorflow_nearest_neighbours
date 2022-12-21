@@ -1,16 +1,17 @@
-#include "external/local_config_tf/include/tensorflow/core/platform/types.h"
+#include "tensorflow/core/platform/types.h"
 
 
 namespace tensorflow {
   namespace functor {
 
+    template<typename T>
     int32_t nearest_neighbour_index(
         const int32_t vocab_size,
-        const Eigen::Vector<float, Eigen::Dynamic> &embedding,
-        const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
+        const Eigen::Vector<T, Eigen::Dynamic> &embedding,
+        const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &embedding_matrix
     );
 
-    template<typename Device>
+    template<typename T, typename Device>
     struct NearestNeighboursFunctor {
       void operator()(
           const Device &d,

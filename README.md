@@ -1,36 +1,18 @@
 # TensorFlow Nearest Neighbours Op
 
-| Tool       | Version    |
-|------------|------------|
-| Bazel      | 5.1.1      |
-| Clang      | 14.0.0     |
-| Tensorflow | 2.10.0-cpu |
-| Python     | 3.9        |
-| Protobuf   | 3.19.6     |
 
-### Run Tests
+| Tool         | Version |
+|--------------|---------|
+| Clang        | 14.0.0  |
+| Tensorflow   | 2.11.0  |
+| Python       | 3.9     |
+ | gcc          |         |
+| cuda         |         | 
+| nvcc         |         | 
+| metal        |         | 
+| metallib     |         |
 
-```bash
-bazel run //nearest_neighbours:nearest_neighbours_ops_py_test       
-```
-
-### Build PIP Package
-
-```bash
-  ./configure.sh
-  bazel build build_pip_pkg
-  bazel-bin/build_pip_pkg artifacts
-```
-
-### Install and Test PIP Package
-
-Once the pip package has been built, you can install it with
-
-```bash
-pip install artifacts/*.whl
-```
-
-Then test out the pip package
+### Example usage:
 
 ```python
 import tensorflow as tf
@@ -42,14 +24,30 @@ result = nearest_neighbours(x, em)
 print(result.shape)
 ```
 
-## References:
-
-- [Extending TensorFlow with Custom C++ Operations](https://www.gresearch.co.uk/blog/article/extending-tensorflow-with-custom-c-operations/)
-- [Create an Op](https://www.tensorflow.org/guide/create_op)
-- [TensorFlow Custom Op](https://github.com/tensorflow/custom-op)
-
-
-## Build Metal Version:
-```shell
-make metal_kernel
+### Building from source:
+- First we need to build the shared library
+  - CPU only:
+    ```bash
+    make cpu_kernel
+    ```
+  - CUDA 
+    ```bash
+    make cuda_kernel
+    ```
+  - Metal (macOS only)
+    ```bash
+    make metal_kernel
+    ```
+    
+- Then, we can test the OP
+```bash
+make test
+```
+- Afterwards, we build a pip package from it:
+```bash
+make pip_pkg
+```
+- And finally, we can install it: 
+```bash
+pip install build/dist/*.whl 
 ```

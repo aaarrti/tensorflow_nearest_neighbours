@@ -4,16 +4,7 @@ import tensorflow as tf
 from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
 
-nearest_neighbours_ops = load_library.load_op_library(
-    resource_loader.get_path_to_datafile("_nearest_neighbours_ops.so")
-)
-
-nearest_neighbours_func = nearest_neighbours_ops.nearest_neighbours
-
-
-__all__ = [
-    "nearest_neighbours",
-]
+_backend = load_library.load_op_library(resource_loader.get_path_to_datafile("_nearest_neighbours_ops.so"))
 
 
 def nearest_neighbours(
@@ -27,4 +18,4 @@ def nearest_neighbours(
     :param embedding_matrix: Embedding matrix of Language Model with shape [vocab_size, embedding_dimension].
     :return: token_embeddings, shape = [batch_size, None, embedding_dimension], dtype=tf.float32.
     """
-    return nearest_neighbours_func(token_embeddings, embedding_matrix)
+    return _backend.nearest_neighbours(token_embeddings, embedding_matrix)

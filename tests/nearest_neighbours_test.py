@@ -1,14 +1,12 @@
 from __future__ import annotations
 
+
 import tensorflow as tf
 from tensorflow.python.platform import test
-from tensorflow.python.framework import test_util
-from tensorflow.python.framework import ops
+from tensorflow.python.framework import load_library
+from tensorflow.python.platform import resource_loader
 
-try:
-    from python.ops.nearest_neighbours_ops import nearest_neighbours
-except ImportError:
-    from nearest_neighbours_ops import nearest_neighbours
+nearest_neighbours = load_library.load_op_library(resource_loader.get_path_to_datafile("../build/_nearest_neighbours_ops.so")).nearest_neighbours
 
 
 @tf.function
