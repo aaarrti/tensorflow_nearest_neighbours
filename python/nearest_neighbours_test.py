@@ -5,6 +5,8 @@ import tensorflow as tf
 from tensorflow.python.platform import test
 from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
+from tensorflow.python.framework import test_util
+from tensorflow.python.framework import ops
 
 nearest_neighbours = load_library.load_op_library(
     resource_loader.get_path_to_datafile("../build/_nearest_neighbours_ops.so")
@@ -73,6 +75,20 @@ class NearestNeighboursTest(test.TestCase):
             x = tf.random.uniform(shape=[32, 65, 512])
             result = nearest_neighbours(x, em)
             expected = py_nearest_neighbours_batch(x, em)
+
+        self.assertAllClose(result, expected)
+
+
+class TestOnGPU(test.TestCase):
+
+    @test_util.run_gpu_only
+    def test_on_gpu(self):
+        with self.test_session():
+            with ops.device("/gpu:0"):
+                em = tf.random.uniform(shape=[50, 32])
+                x = tf.random.uniform(shape=[8, 10, 32])
+                result = nearest_neighbours(x, em)
+                expected = py_nearest_neighbours_batch(x, em)
 
         self.assertAllClose(result, expected)
 

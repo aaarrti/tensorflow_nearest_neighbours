@@ -5,7 +5,7 @@ TF_LFLAGS=$(shell python3.9 -c 'import tensorflow as tf; print(" ".join(tf.sysco
 CPU_SRC = cc/ops/nearest_neighbours_ops.cc cc/kernels/nearest_neighbours_kernels.cc
 CUDA_LIB = build/_nearest_neighbours_ops.cu.o
 
-C_FLAGS = $(TF_CFLAGS) -fPIC -O3 -std=c++17
+C_FLAGS = $(TF_CFLAGS) -fPIC -std=c++17 -O3
 L_FLAGS = -shared $(TF_LFLAGS)
 TARGET_FLAG = -o build/_nearest_neighbours_ops.so
 
@@ -22,19 +22,32 @@ cpu_kernel:
 	clang++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) $(TARGET_FLAG)
 
 cuda_kernel:
-	nvcc -c $(TF_CFLAGS) -D CUDA=1 -x cu -Xcompiler -fPIC --expt-relaxed-constexpr \
-	cc/kernels/nearest_neighbours_kernels.cu -o $(CUDA_LIB)
-	clang++ $(CFLAGS) $(LDFLAGS) -D CUDA=1  \
-	-I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart \
-	$(CPU_SRC) $(CUDA_LIB)
+	nvcc -c $(TF_CFLAGS) \
+		-D CUDA=1 \
+		-x cu -Xcompiler -fPIC --expt-relaxed-constexpr \
+		cc/kernels/nearest_neighbours_kernels.cu \
+		-o $(CUDA_LIB)
+	clang++ $(CFLAGS) $(LDFLAGS) \
+		-D CUDA=1  \
+		-I/usr/local/cuda/targets/x86_64-linux/include \
+		-L/usr/local/cuda/targets/x86_64-linux/lib -lcudart \
+		$(CPU_SRC) $(CUDA_LIB)
 
 
 metal_kernel:
-	#xcrun -sdk macosx metal -c cc/kernels/nearest_neighbours_kernels.metal -o build/_nearest_neighbours_kernels.air -ffast-math
-	#xcrun -sdk macosx metallib build/_nearest_neighbours_kernels.air -o build/_nearest_neighbours_kernels.metallib
-
-	clang++ -x objective-c++ $(C_FLAGS) $(L_FLAGS) -framework Foundation \
-	cc/kernels/nearest_neighbours_kernels_metal.cc $(CPU_SRC) $(TARGET_FLAG)
+	xcrun -sdk macosx metal \
+		-c cc/kernels/nearest_neighbours_kernels.metal \
+		-o build/_nearest_neighbours_kernels.air \
+		-ffast-math
+	xcrun -sdk macosx metallib \
+		build/_nearest_neighbours_kernels.air \
+		-o build/_nearest_neighbours_kernels.metallib
+	clang++ -x objective-c++ \
+		$(C_FLAGS) $(L_FLAGS) \
+		cc/kernels/nearest_neighbours_kernels.cc \
+		cc/ops/nearest_neighbours_ops.cc \
+		cc/kernels/nearest_neighbours_kernels.mm.cc $(TARGET_FLAG) \
+		-framework Foundation -undefined dynamic_lookup
 
 
 clean:
