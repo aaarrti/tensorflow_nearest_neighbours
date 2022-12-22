@@ -169,10 +169,9 @@ static void MetalNearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *c
         [encoder setBuffer:arg2Buffer offset:0 atIndex:1];
         [encoder setBuffer:outputsBuffer offset:0 atIndex:2];
 
-        [encoder setBytes:&batch_size length:sizeof(batch_size) atIndex:3];
-        [encoder setBytes:&sequence_length length:sizeof(sequence_length) atIndex:4];
+        [encoder setBytes:&sequence_length length:sizeof(sequence_length) atIndex:3];
         [encoder setBytes:&sequence_length length:sizeof(vocab_size) atIndex:4];
-        [encoder setBytes:&embedding_dim length:sizeof(embedding_dim) atIndex:6];
+        [encoder setBytes:&embedding_dim length:sizeof(embedding_dim) atIndex:5];
 
         MTLSize threadgroupsPerGrid = MTLSizeMake(batch_size, sequence_length, 1);
         MTLSize threadsPerThreadgroup = MTLSizeMake(1, 1, 1);
