@@ -34,7 +34,7 @@ setup(
     author='Artem Sereda',
     author_email='artem.sereda@campus.tu-berlin.de',
     # Contained modules and scripts.
-    packages=find_packages(),
+    packages=find_packages(include=["*.py", "*.so", "*.metallib"]),
     install_requires=REQUIRED_PACKAGES,
     # Add in any packaged data.
     include_package_data=True,

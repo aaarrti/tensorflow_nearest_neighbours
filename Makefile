@@ -10,7 +10,8 @@ L_FLAGS = -shared $(TF_LFLAGS)
 TARGET_FLAG = -o build/_nearest_neighbours_ops.so
 
 test:
-	python3.9 python/nearest_neighbours_test.py
+	cp python/nearest_neighbours_test.py build;
+	cd build; python3.9 nearest_neighbours_test.py
 
 pip_pkg:
 	cp -f setup.py build
