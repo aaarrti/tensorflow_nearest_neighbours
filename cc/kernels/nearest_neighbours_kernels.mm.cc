@@ -12,7 +12,7 @@
 
 @protocol TF_MetalStream
 - (dispatch_queue_t) queue;
-- (id <MTLCommandBuffer>) currentCommandBuffer;
+- (id<MTLCommandBuffer>) currentCommandBuffer;
 - (void) commit;
 - (void) commitAndWait;
 @end
@@ -33,12 +33,11 @@ public:
         id<MTLDevice> device = MTLCreateSystemDefaultDevice();
 
         NSError* error = nil;
-        NSURL *libraryUrl =[NSURL URLWithString:libraryFile];
-        library =[device newLibraryWithURL:libraryUrl error:&error];
+        NSURL *libraryUrl = [NSURL URLWithString:libraryFile];
+        library = [device newLibraryWithURL:libraryUrl error:&error];
 
         if (!library) {
-          printf("Compilation error: %s\n", [[error
-          description] UTF8String]);
+          printf("Compilation error: %s\n", [[error description] UTF8String]);
           abort();
         }
       }
@@ -47,16 +46,15 @@ public:
   }
 
 public:
-  static id <MTLLibrary> library;
+  static id<MTLLibrary> library;
 
 private:
   KernelLibrarySingleton() {}
-
   static KernelLibrarySingleton *sInstance;
 };
 
 KernelLibrarySingleton *KernelLibrarySingleton::sInstance = nullptr;
-id <MTLLibrary> KernelLibrarySingleton::library = nil;
+id<MTLLibrary> KernelLibrarySingleton::library = nil;
 
 
 typedef struct NearestNeighboursOp {
@@ -86,7 +84,7 @@ std::vector <int64_t> getShape(TF_Tensor *tensor) {
 
 static void MetalNearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
-  auto *k = static_cast<MetalNearestNeighboursOp *>(kernel);
+  auto *k = static_cast<MetalNearestNeighboursOp*>(kernel);
 
   TF_Status *status = TF_NewStatus();
 
@@ -108,11 +106,11 @@ static void MetalNearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *c
 
   TF_DataType dataType = TF_TensorType(embeddings_batch);
   std::vector <int64_t> shape = getShape(embeddings_batch);
-  const auto batch_size = shape[0];
-  const auto sequence_length = shape[1];
-  const auto embedding_dim = shape[2];
-  const auto vocab_size = getShape(embedding_matrix)[0];
-  std::vector <int64_t> output_shape{batch_size, sequence_length, embedding_dim};
+  const int64_t batch_size = shape[0];
+  const int64_t sequence_length = shape[1];
+  const int64_t embedding_dim = shape[2];
+  const int64_t vocab_size = getShape(embedding_matrix)[0];
+  std::vector<int64_t> output_shape{batch_size, sequence_length, embedding_dim};
   TF_Tensor *outputs = TF_AllocateOutput(ctx, 0, dataType, (int64_t *) output_shape.data(), output_shape.size(), 0,
                                          status);
 
@@ -129,7 +127,7 @@ static void MetalNearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *c
 
   @autoreleasepool{
 
-    id < TF_MetalStream > metalStream = (id < TF_MetalStream > )(TF_GetStream(ctx, status));
+    id<TF_MetalStream> metalStream = (id <TF_MetalStream>) TF_GetStream(ctx, status);
 
     if (TF_GetCode(status) != TF_OK) {
       printf("No stream was found: %s\n", TF_Message(status));
@@ -143,25 +141,24 @@ static void MetalNearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *c
 
     dispatch_sync(metalStream.queue, ^() {
       @autoreleasepool{
-        id < MTLCommandBuffer > commandBuffer = metalStream.currentCommandBuffer;
-        id <MTLDevice> device = commandBuffer.device;
+        id<MTLCommandBuffer> commandBuffer = metalStream.currentCommandBuffer;
+        id<MTLDevice> device = commandBuffer.device;
 
         NSError *error = nil;
-        id <MTLLibrary> library = KernelLibrarySingleton::getInstance().library;
+        id<MTLLibrary> library = KernelLibrarySingleton::getInstance().library;
 
-        id <MTLFunction> function = nil;
+        id<MTLFunction> function = nil;
 
-        function =[[library newFunctionWithName:@"NearestNeighboursMetalKernel"] autorelease];
+        function = [[library newFunctionWithName:@"NearestNeighboursMetalKernel"] autorelease];
 
-        id <MTLComputePipelineState> pipeline =
-        [device newComputePipelineStateWithFunction:function error:&error];
+        id<MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function error:&error];
         assert(pipeline);
 
-        id <MTLBuffer> arg1Buffer = (id <MTLBuffer>) TF_TensorData(embeddings_batch);
-        id <MTLBuffer> arg2Buffer = (id <MTLBuffer>) TF_TensorData(embedding_matrix);
-        id <MTLBuffer> outputsBuffer = (id <MTLBuffer>) TF_TensorData(outputs);
+        id<MTLBuffer> arg1Buffer = (id<MTLBuffer>) TF_TensorData(embeddings_batch);
+        id<MTLBuffer> arg2Buffer = (id<MTLBuffer>) TF_TensorData(embedding_matrix);
+        id<MTLBuffer> outputsBuffer = (id<MTLBuffer>) TF_TensorData(outputs);
 
-        id <MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
+        id<MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
 
         [encoder setComputePipelineState:pipeline];
 
@@ -174,7 +171,7 @@ static void MetalNearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *c
         [encoder setBytes:&embedding_dim length:sizeof(embedding_dim) atIndex:5];
 
         MTLSize threadgroupsPerGrid = MTLSizeMake(batch_size, sequence_length, 1);
-        MTLSize threadsPerThreadgroup = MTLSizeMake(1, 1, 1);
+        MTLSize threadsPerThreadgroup = MTLSizeMake(batch_size, 1, 1);
 
         [encoder dispatchThreadgroups:threadgroupsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
         [encoder endEncoding];
