@@ -1,5 +1,4 @@
 #include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/types.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "nearest_neighbours.h"
@@ -10,9 +9,6 @@
 
 
 namespace tensorflow {
-
-  typedef Eigen::ThreadPoolDevice CPUDevice;
-  typedef Eigen::GpuDevice GPUDevice;
 
   namespace functor {
 
@@ -113,13 +109,20 @@ namespace tensorflow {
     };
 
 
-#define REGISTER_CPU() REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_CPU), NearestNeighboursOp<CPUDevice, float>);
+#define REGISTER_CPU() REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("CPU"), NearestNeighboursOp<CPUDevice, float>);
     REGISTER_CPU()
 
 
 #ifdef CUDA
 #define REGISTER_GPU() extern template struct NearestNeighboursFunctor<GPUDevice, float>; \
-                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device(DEVICE_GPU), NearestNeighboursOp<GPUDevice, float>);
+                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"), NearestNeighboursOp<GPUDevice, float>);
+    REGISTER_GPU()
+#endif
+
+
+#ifdef METAL
+#define REGISTER_GPU() extern template struct NearestNeighboursFunctor<MetalDevice, float>; \
+                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"), NearestNeighboursOp<MetalDevice, float>);
     REGISTER_GPU()
 #endif
 

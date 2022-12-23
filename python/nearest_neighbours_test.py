@@ -9,7 +9,7 @@ from tensorflow.python.framework import test_util
 from tensorflow.python.framework import ops
 
 nearest_neighbours = load_library.load_op_library(
-    resource_loader.get_path_to_datafile("../build/_nearest_neighbours_ops.so")
+    resource_loader.get_path_to_datafile("../build/_nearest_neighbours_op.so")
 ).nearest_neighbours
 
 

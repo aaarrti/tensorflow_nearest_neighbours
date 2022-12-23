@@ -13,44 +13,44 @@ TF_CFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfi
 TF_LFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')
 
 
-CPU_SRC = cc/ops/nearest_neighbours_ops.cc cc/kernels/nearest_neighbours_kernels.cc
-CUDA_LIB = build/_nearest_neighbours_ops.cu.o
+CPU_SRC = cc/ops/nearest_neighbours_op.cc cc/kernels/nearest_neighbours_kernel.cc
+CUDA_LIB = build/_nearest_neighbours_op.cu.o
 
 C_FLAGS = ${TF_CFLAGS} -fPIC -std=c++17 -O3
 L_FLAGS = -shared ${TF_LFLAGS}
-TARGET_FLAG = -o build/_nearest_neighbours_ops.so
+TARGET_FLAG = -o build/_nearest_neighbours_op.so
 
 cpu_kernel:
 	g++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) $(TARGET_FLAG)
 
-cuda_kernel:
+cuda_lib:
 	nvcc -c $(TF_CFLAGS) $(L_FLAGS) \
 		-D CUDA=1 \
 		-x cu -Xcompiler -fPIC --expt-relaxed-constexpr \
-		cc/kernels/nearest_neighbours_kernels.cu \
+		cc/kernels/nearest_neighbours_kernel.cu \
 		-o $(CUDA_LIB)
+
+
+cuda_kernel:
 	g++ $(C_FLAGS) $(L_FLAGS) \
 		-D CUDA=1  \
 		-I/usr/local/cuda/targets/x86_64-linux/include \
 		-L/usr/local/cuda/targets/x86_64-linux/lib -lcudart \
 		$(CPU_SRC) $(CUDA_LIB) $(TARGET_FLAG)
 
-
-metal_kernel:
+metal_lib:
 	xcrun -sdk macosx metal \
-		-c cc/kernels/nearest_neighbours_kernels.metal \
-		-o build/_nearest_neighbours_kernels.air \
+		-c cc/kernels/nearest_neighbours_kernel.metal \
+		-o build/_nearest_neighbours_kernel.air \
 		-ffast-math
 	xcrun -sdk macosx metallib \
-		build/_nearest_neighbours_kernels.air \
-		-o build/_nearest_neighbours_kernels.metallib
-	clang++ -x objective-c++ \
-		$(C_FLAGS) $(L_FLAGS) \
-		cc/kernels/nearest_neighbours_kernels.cc \
-		cc/ops/nearest_neighbours_ops.cc \
-		cc/kernels/nearest_neighbours_kernels.mm.cc $(TARGET_FLAG) \
-		-framework Foundation -undefined dynamic_lookup
+		build/_nearest_neighbours_kernel.air \
+		-o build/_nearest_neighbours_kernel.metallib
 
+metal_kernel:
+	clang++ -Iinclude/ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC)
+		cc/kernels/nearest_neighbours_kernels.metal.cc $(TARGET_FLAG) \
+		-framework Foundation -undefined dynamic_lookup
 
 clean:
 	rm -r -f build/*

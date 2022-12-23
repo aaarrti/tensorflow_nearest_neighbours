@@ -2,6 +2,11 @@
 
 
 namespace tensorflow {
+
+  typedef Eigen::ThreadPoolDevice CPUDevice;
+  typedef Eigen::GpuDevice GPUDevice;
+  typedef struct MetalPlugin {} MetalDevice;
+
   namespace functor {
 
     template<typename T>

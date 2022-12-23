@@ -31,10 +31,12 @@ print(result.shape)
     ```
   - CUDA 
     ```bash
+    make cuda_lib
     make cuda_kernel
     ```
   - Metal (macOS only)
     ```bash
+    make metal_lib
     make metal_kernel
     ```
     
