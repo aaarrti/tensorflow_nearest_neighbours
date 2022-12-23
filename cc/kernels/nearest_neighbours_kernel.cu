@@ -40,7 +40,7 @@ namespace tensorflow {
     }
 
     template<typename T>
-    struct NearestNeighboursFunctor<T, GPUDevice> {
+    struct NearestNeighboursFunctor<GPUDevice, T> {
 
       void operator()(
           const GPUDevice &device,
@@ -69,9 +69,8 @@ namespace tensorflow {
       }
     };
 
-// Explicitly instantiate functors for the types of OpKernels registered.
-    template
-    struct NearestNeighboursFunctor<float, GPUDevice>;
+    // Explicitly instantiate functors for the types of OpKernels registered.
+    template struct NearestNeighboursFunctor<GPUDevice, float>;
   }
 }
 

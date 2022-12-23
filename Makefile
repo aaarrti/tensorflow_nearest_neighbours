@@ -48,8 +48,11 @@ metal_lib:
 		-o build/_nearest_neighbours_kernel.metallib
 
 metal_kernel:
-	clang++ -Iinclude/ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC)
-		cc/kernels/nearest_neighbours_kernels.metal.cc $(TARGET_FLAG) \
+	clang++ -x objective-c++ \
+		$(C_FLAGS) $(L_FLAGS) \
+		cc/kernels/nearest_neighbours_kernel.cc \
+		cc/ops/nearest_neighbours_op.cc \
+		cc/kernels/nearest_neighbours_kernel.metal.cc $(TARGET_FLAG) \
 		-framework Foundation -undefined dynamic_lookup
 
 clean:

@@ -35,8 +35,7 @@ namespace tensorflow {
       return argmin;
     }
 
-    template<typename T>
-    struct NearestNeighboursFunctor<CPUDevice, T> {
+    template<typename T> struct NearestNeighboursFunctor<CPUDevice, T> {
       void operator()(
           const CPUDevice &device,
           const tensorflow::Tensor *token_embeddings,
@@ -118,13 +117,5 @@ namespace tensorflow {
                           REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"), NearestNeighboursOp<GPUDevice, float>);
     REGISTER_GPU()
 #endif
-
-
-#ifdef METAL
-#define REGISTER_GPU() extern template struct NearestNeighboursFunctor<MetalDevice, float>; \
-                          REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"), NearestNeighboursOp<MetalDevice, float>);
-    REGISTER_GPU()
-#endif
-
   }
 }

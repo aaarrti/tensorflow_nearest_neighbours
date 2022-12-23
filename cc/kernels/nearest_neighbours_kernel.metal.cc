@@ -1,149 +1,217 @@
+#include <filesystem>
+#include <sys/_types/_int32_t.h>
+#include <dlfcn.h>
 #include <iostream>
-#include <Foundation/Foundation.hpp>
-#include <Metal/Metal.hpp>
+#include <dispatch/dispatch.h>
+#import <Metal/Metal.h>
 
-#include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/platform/types.h"
-#include "nearest_neighbours.h"
-
-namespace tensorflow {
-
-  namespace functor {
+#include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/c/kernels.h"
 
 
-    class MetalNearestNeighbours {
-    private:
-      MTL::Device *device;
-      MTL::Library *library;
-      MTL::Function *function;
+@protocol TF_MetalStream
+- (dispatch_queue_t) queue;
+- (id<MTLCommandBuffer>) currentCommandBuffer;
+- (void) commit;
+- (void) commitAndWait;
+@end
 
-      MTL::ComputePipelineState *function_pso;
-      MTL::CommandQueue *command_queue;
+// The singleton class for kernel library.
+class KernelLibrarySingleton {
+public:
+  static KernelLibrarySingleton &getInstance() {
+    if (sInstance == nullptr) {
+      sInstance = new KernelLibrarySingleton();
 
-      MTL::Buffer *m_buffer_token_embeddings;
-      MTL::Buffer *m_buffer_embedding_matrix;
-      MTL::Buffer *m_buffer_result;
+      printf("Loading kernel library...\n");
 
-    public:
+      @autoreleasepool{
 
-      void init() {
-        if (this->device == nullptr) {
-          this.device = MTL::CreateSystemDefaultDevice();
-        }
+        // Finding the metallib path.
+        NSString* libraryFile = @"_nearest_neighbours_kernel.metallib";
+        id<MTLDevice> device = MTLCreateSystemDefaultDevice();
 
-        if (this->library == nullptr) {
-          NS::Error *error = nullptr;
-          NS::String *path = NS::String::string(
-              "/Users/artemsereda/Documents/PycharmProjects/tf_nearest_neighbours/build/_nearest_neighbours_kernel.metallib",
-              NS::StringEncoding::ASCIIStringEncoding
-          );
-          this.library = m_device->newLibrary(path, &error);
-          if (!this->library) {
-            std::cerr << "Failed to load default library: " << error->localizedDescription()->utf8String() << std::endl;
-            abort();
-          }
+        NSError* error = nil;
+        NSURL *libraryUrl = [NSURL URLWithString:libraryFile];
+        library = [device newLibraryWithURL:libraryUrl error:&error];
 
-        }
-
-        if (this->function == nullptr) {
-          NS::String *function_name = NS::String::string("nearest_neighbours", NS::ASCIIStringEncoding);
-          this.function = default_library->newFunction(function_name);
-          if (!this.function) {
-            std::cerr << "Failed to find the adder function." << std::endl;
-            abort();
-          }
-        }
-
-
-        auto function_name = NS::String::string("nearest_neighbours", NS::ASCIIStringEncoding);
-        auto add_function = default_library->newFunction(function_name);
-
-        if (!this->function) {
-          std::cerr << "Failed to find the adder function." << error->localizedDescription()->utf8String() << std::endl;
-        }
-        this->function_pso = m_device->newComputePipelineState(this.function, &error);
-        this->command_queue = m_device->newCommandQueue();
-      }
-
-      void load_data_to_buffers(
-          //floa* token_embeddings,
-          //T* embedding_matrix,
-          const int32_t &sequence_length,
-          const int32_t &vocab_size,
-          const int32_t &embed_dim,
-      ) {
-        this-> = m_device->newBuffer(buffer_size, MTL::ResourceStorageModeShared);
-        m_buffer_B = m_device->newBuffer(buffer_size, MTL::ResourceStorageModeShared);
-        m_buffer_result = m_device->newBuffer(buffer_size, MTL::ResourceStorageModeShared);
-
-        generate_random_float_data(m_buffer_A);
-        generate_random_float_data(m_buffer_B);
-
-        float *data_ptr = (float *) buffer->contents();
-        for (unsigned long index = 0; index < array_length; index++) {
-          data_ptr[index] = (float) rand() / (float) (RAND_MAX);
+        if (!library) {
+          printf("Compilation error: %s\n", [[error description] UTF8String]);
+          abort();
         }
       }
-
-      void compute() {
-        MTL::CommandBuffer *command_buffer = this->command_queue->commandBuffer();
-        MTL::ComputeCommandEncoder *compute_encoder = this->command_buffer->computeCommandEncoder();
-        compute_encoder->setComputePipelineState(m_add_function_pso);
-        compute_encoder->setBuffer(m_buffer_A, 0, 0);
-        compute_encoder->setBuffer(m_buffer_B, 0, 1);
-        compute_encoder->setBuffer(m_buffer_result, 0, 2);
-
-        MTL::Size grid_size = MTL::Size(array_length, 1, 1);
-
-        NS::UInteger thread_group_size_ = m_add_function_pso->maxTotalThreadsPerThreadgroup();
-        if (thread_group_size_ > array_length) {
-          thread_group_size_ = array_length;
-        }
-
-        MTL::Size thread_group_size = MTL::Size(thread_group_size_, 1, 1);
-
-        compute_encoder->dispatchThreads(grid_size, thread_group_size);
-        compute_encoder->endEncoding();
-        command_buffer->commit();
-        command_buffer->waitUntilCompleted();
-
-      };
-
-
     }
-
-    template typename <T>
-    struct NearestNeighboursFunctor<MetalDevice, T> {
-
-      void operator()(
-          const GPUDevice &device,
-          const tensorflow::Tensor *token_embeddings,
-          const tensorflow::Tensor *embedding_matrix,
-          tensorflow::Tensor *output_tensor
-      ) {
-
-        const auto batch_size = static_cast<int32_t>(token_embeddings->dim_size(0));
-        const auto vocab_size = static_cast<int32_t>(embedding_matrix->dim_size(0));
-        const auto sequence_length = static_cast<int32_t>(token_embeddings->dim_size(1));
-        const auto embedding_dim = static_cast<int32_t>(token_embeddings->dim_size(2));
-
-        const T *token_embeddings_flat = token_embeddings->flat < T >.data();
-        const T *embedding_matrix_flat = embedding_matrix->flat<T>().data();
-        T *output_flat = output_tensor->flat<T>().data();
-
-        NS::AutoreleasePool *pool = NS::AutoreleasePool::alloc()->init();
-
-        const m_nn = std::make_unique<MetalNearestNeighbours>();
-        m_nn->init();
-        m_nn->load_data_to_buffers<T>(
-            sequence_length, vocab_size, embedding_dim,
-            token_embeddings_flat, embedding_matrix_flat, output_flat
-        );
-        m_nn->compute();
-        p_pool->release();
-      }
-
-    };
+    return *sInstance;
   }
+
+public:
+  static id<MTLLibrary> library;
+
+private:
+  KernelLibrarySingleton() {}
+  static KernelLibrarySingleton *sInstance;
+};
+
+KernelLibrarySingleton *KernelLibrarySingleton::sInstance = nullptr;
+id<MTLLibrary> KernelLibrarySingleton::library = nil;
+
+
+typedef struct NearestNeighboursOp {
+} MetalNearestNeighboursOp;
+
+
+static void *MetalNearestNeighboursOp_Create(TF_OpKernelConstruction *ctx) {
+  auto *kernel = new MetalNearestNeighboursOp;
+  return kernel;
 }
 
+static void MetalNearestNeighboursOp_Delete(void *kernel) {
+  delete static_cast<MetalNearestNeighboursOp *>(kernel);
+}
+
+
+std::vector <int64_t> getShape(TF_Tensor *tensor) {
+  std::vector <int64_t> shape;
+  const int dimensionCount = TF_NumDims(tensor);
+  shape.resize(dimensionCount);
+  for (int dim = 0; dim < dimensionCount; dim++) {
+    shape[dim] = TF_Dim(tensor, dim);
+  }
+  return shape;
+}
+
+
+static void MetalNearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
+
+  auto *k = static_cast<MetalNearestNeighboursOp*>(kernel);
+
+  TF_Status *status = TF_NewStatus();
+
+  TF_Tensor *embeddings_batch = nullptr;
+  TF_GetInput(ctx, 0, &embeddings_batch, status);
+
+  if (TF_GetCode(status) != TF_OK) {
+    printf("Failed to retrieve embeddings_batch: %s\n", TF_Message(status));
+    abort();
+  }
+
+  TF_Tensor *embedding_matrix = nullptr;
+  TF_GetInput(ctx, 1, &embedding_matrix, status);
+
+  if (TF_GetCode(status) != TF_OK) {
+    printf("Failed to retrieve embedding_matrix: %s\n", TF_Message(status));
+    abort();
+  }
+
+  TF_DataType dataType = TF_TensorType(embeddings_batch);
+  std::vector <int64_t> shape = getShape(embeddings_batch);
+  const int64_t batch_size = shape[0];
+  const int64_t sequence_length = shape[1];
+  const int64_t embedding_dim = shape[2];
+  const int64_t vocab_size = getShape(embedding_matrix)[0];
+  std::vector<int64_t> output_shape{batch_size, sequence_length, embedding_dim};
+  TF_Tensor *outputs = TF_AllocateOutput(ctx, 0, dataType, (int64_t *) output_shape.data(), output_shape.size(), 0,
+                                         status);
+
+
+  if (TF_GetCode(status) != TF_OK) {
+    printf("Allocation failed: %s\n", TF_Message(status));
+    TF_OpKernelContext_Failure(ctx, status);
+    TF_DeleteTensor(embeddings_batch);
+    TF_DeleteTensor(embedding_matrix);
+    TF_DeleteTensor(outputs);
+    TF_DeleteStatus(status);
+    abort();
+  }
+
+  @autoreleasepool{
+
+    id<TF_MetalStream> metalStream = (id <TF_MetalStream>) TF_GetStream(ctx, status);
+
+    if (TF_GetCode(status) != TF_OK) {
+      printf("No stream was found: %s\n", TF_Message(status));
+      TF_OpKernelContext_Failure(ctx, status);
+      TF_DeleteTensor(embeddings_batch);
+      TF_DeleteTensor(embedding_matrix);
+      TF_DeleteTensor(outputs);
+      TF_DeleteStatus(status);
+      return;
+    }
+
+    dispatch_sync(metalStream.queue, ^() {
+      @autoreleasepool{
+        id<MTLCommandBuffer> commandBuffer = metalStream.currentCommandBuffer;
+        id<MTLDevice> device = commandBuffer.device;
+
+        NSError *error = nil;
+        id<MTLLibrary> library = KernelLibrarySingleton::getInstance().library;
+
+        id<MTLFunction> function = nil;
+
+        function = [[library newFunctionWithName:@"nearest_neighbours"] autorelease];
+
+        id<MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function error:&error];
+        assert(pipeline);
+
+        id<MTLBuffer> arg1Buffer = (id<MTLBuffer>) TF_TensorData(embeddings_batch);
+        id<MTLBuffer> arg2Buffer = (id<MTLBuffer>) TF_TensorData(embedding_matrix);
+        id<MTLBuffer> outputsBuffer = (id<MTLBuffer>) TF_TensorData(outputs);
+
+        id<MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
+
+        [encoder setComputePipelineState:pipeline];
+
+        [encoder setBuffer:arg1Buffer offset:0 atIndex:0];
+        [encoder setBuffer:arg2Buffer offset:0 atIndex:1];
+        [encoder setBuffer:outputsBuffer offset:0 atIndex:2];
+
+        [encoder setBytes:&sequence_length length:sizeof(sequence_length) atIndex:3];
+        [encoder setBytes:&sequence_length length:sizeof(vocab_size) atIndex:4];
+        [encoder setBytes:&embedding_dim length:sizeof(embedding_dim) atIndex:5];
+
+        MTLSize threadgroupsPerGrid = MTLSizeMake(batch_size, sequence_length, 1);
+        MTLSize threadsPerThreadgroup = MTLSizeMake(batch_size, 1, 1);
+
+        [encoder dispatchThreadgroups:threadgroupsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
+        [encoder endEncoding];
+        [metalStream commit];
+      }
+    });
+  }
+
+  TF_DeleteTensor(embeddings_batch);
+  TF_DeleteTensor(embedding_matrix);
+  TF_DeleteTensor(outputs);
+  TF_DeleteStatus(status);
+
+}
+
+
+void RegisterNearestNeighboursKernels(const char *device_type) {
+  std::string
+      opName("NearestNeighbours");
+  auto *builder = TF_NewKernelBuilder("NearestNeighbours", device_type,
+                                      &MetalNearestNeighboursOp_Create,
+                                      &MetalNearestNeighboursOp_Compute,
+                                      &MetalNearestNeighboursOp_Delete);
+
+  TF_Status *status = TF_NewStatus();
+  if (TF_OK != TF_GetCode(status))
+    std::cerr << " Error while registering " << opName << " kernel";
+  TF_RegisterKernelBuilder((opName + "Op").c_str(), builder, status);
+  if (TF_OK != TF_GetCode(status))
+    std::cerr << " Error while registering " << opName << " kernel";
+  TF_DeleteStatus(status);
+}
+
+
+// Instantiate the kernels.
+class InitPlugin {
+public:
+  InitPlugin() {
+    RegisterNearestNeighboursKernels("GPU");
+  }
+};
+
+InitPlugin gInitPlugin;
