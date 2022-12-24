@@ -9,9 +9,10 @@ pip_pkg:
 	cd build; python setup.py bdist_wheel
 
 
-TF_CFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
-TF_LFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')
-
+#TF_CFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
+TF_CFLAGS=-I/Users/artemsereda/anaconda3/envs/custom_op/lib/python3.9/site-packages/tensorflow/include -D_GLIBCXX_USE_CXX11_ABI=0 --std=c++17 -DEIGEN_MAX_ALIGN_BYTES=64
+#TF_LFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')
+TF_LFLAGS=-L/Users/artemsereda/anaconda3/envs/custom_op/lib/python3.9/site-packages/tensorflow -ltensorflow_framework.2
 
 CPU_SRC = cc/ops/nearest_neighbours_op.cc cc/kernels/nearest_neighbours_kernel.cc
 CUDA_LIB = build/_nearest_neighbours_op.cu.o
@@ -39,19 +40,14 @@ cuda_kernel:
 		$(CPU_SRC) $(CUDA_LIB) $(TARGET_FLAG)
 
 metal_lib:
-	xcrun -sdk macosx metal \
-		-c cc/kernels/nearest_neighbours_kernel.metal \
-		-o build/_nearest_neighbours_kernel.air \
-		-ffast-math
-	xcrun -sdk macosx metallib \
-		build/_nearest_neighbours_kernel.air \
-		-o build/_nearest_neighbours_kernel.metallib
+	xcrun -sdk macosx metal -c cc/kernels/nearest_neighbours_kernel.metal -o build/_nearest_neighbours_kernel.air -ffast-math
+	xcrun -sdk macosx metallib build/_nearest_neighbours_kernel.air -o build/_nearest_neighbours_kernel.metallib
 
 metal_kernel:
 	clang++ -x objective-c++ \
 		$(C_FLAGS) $(L_FLAGS) \
-		cc/kernels/nearest_neighbours_kernel.cc \
-		cc/ops/nearest_neighbours_op.cc \
+		-shared cc/kernels/nearest_neighbours_kernel.cc \
+		-shared cc/ops/nearest_neighbours_op.cc \
 		cc/kernels/nearest_neighbours_kernel.metal.cc $(TARGET_FLAG) \
 		-framework Foundation -undefined dynamic_lookup
 
