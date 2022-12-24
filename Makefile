@@ -1,3 +1,5 @@
+all: clean
+
 clean:
 	rm -r -f build/*
 
@@ -28,11 +30,13 @@ C_FLAGS = ${TF_CFLAGS} -fPIC -std=c++17 -O3
 L_FLAGS = -shared ${TF_LFLAGS}
 TARGET_FLAG = -o build/_nearest_neighbours_op.so
 
+.DEFAULT:cpu_kernel
+
 cpu_kernel:
 	g++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) $(TARGET_FLAG)
 
 cuda_lib:
-	nvcc -std=c++17 -c $(TF_CFLAGS) $(L_FLAGS) -D CUDA=1 -x cu -Xcompiler -fPIC -DNDEBUG --expt-relaxed-constexpr cc/kernels/nearest_neighbours_kernel.cu -o $(CUDA_LIB)
+	nvcc -std=c++17 -c $(TF_CFLAGS) $(L_FLAGS) -D CUDA=1 -x cu -Xcompiler -fPIC --expt-relaxed-constexpr cc/kernels/nearest_neighbours_kernel.cu -o $(CUDA_LIB)
 
 cuda_kernel:
 	g++ $(CPU_SRC) $(CUDA_LIB) $(C_FLAGS) $(L_FLAGS) -D CUDA=1 -I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart $(TARGET_FLAG)

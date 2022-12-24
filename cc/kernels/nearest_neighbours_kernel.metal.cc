@@ -20,10 +20,13 @@ namespace tensorflow {
   namespace functor {
 
     namespace metal {
-      MTL::Buffer *create_buffer(const float *arr, int size) {
+
+        template<typename T>
+      MTL::Buffer *create_buffer(MTL::Device* m_device, const T *arr, int size) {
         const auto buffer = m_device->newBuffer(size, MTL::ResourceStorageModeShared);
         auto *data_ptr = (__fp16 *) buffer->contents();
-        for (unsigned long index = 0; index < size; index++) {
+        for (auto index = 0; index < size; index++) {
+          std::cout << index << std::endl;
           data_ptr[index] = (__fp16) arr[index];
         }
         return buffer;
@@ -35,9 +38,9 @@ namespace tensorflow {
 
       void operator()(
           const MetalDevice &device,
-          const tensorflow::Tensor *token_embeddings,
-          const tensorflow::Tensor *embedding_matrix,
-          tensorflow::Tensor *output_tensor
+          const Tensor *token_embeddings,
+          const Tensor *embedding_matrix,
+          Tensor *output_tensor
       ) {
 
         const auto batch_size = static_cast<int32_t>(token_embeddings->dim_size(0));
@@ -45,13 +48,11 @@ namespace tensorflow {
         const auto num_tokens = static_cast<int32_t>(token_embeddings->dim_size(1));
         const auto embedding_dim = static_cast<int32_t>(token_embeddings->dim_size(2));
 
-        const auto token_embeddings_flat = token_embeddings->flat<float>().data();
-        const auto embedding_matrix_flat = embedding_matrix->flat<float>().data();
-        auto output_flat = output_tensor->flat<float>.data();
+        const T* token_embeddings_flat = (T*) token_embeddings->data();
+        const T* embedding_matrix_flat = (T*) embedding_matrix->data();
+        T* output_flat = (T*) output_tensor->data();
 
 
-
-        std::cout << "-----Metal Kernel ----" << std::endl;
         NS::AutoreleasePool *p_pool = NS::AutoreleasePool::alloc()->init();
         MTL::Device *m_device = MTL::CreateSystemDefaultDevice();
         NS::Error *error = nullptr;
@@ -69,7 +70,6 @@ namespace tensorflow {
           std::cerr << "Failed to find the adder function." << std::endl;
         }
 
-        NS::Error *error = nullptr;
         const auto function_pso = m_device->newComputePipelineState(function, &error);
         if (error) {
           std::cerr << error->localizedDescription()->utf8String() << std::endl;
@@ -77,9 +77,12 @@ namespace tensorflow {
         }
 
         const auto m_command_queue = m_device->newCommandQueue();
-        const auto m_buffer_X = create_buffer(token_embeddings_flat, batch_size * num_tokens * embed_dim);
-        const auto m_buffer_EM = create_buffer(embedding_matrix_flat, vocab_size * embed_dim);
-        const auto m_buffer_result = m_device->newBuffer(batch_size * num_tokens * embed_dim, MTL::ResourceStorageModeShared);
+        const auto m_buffer_X = metal::create_buffer<T>(m_device, token_embeddings_flat, batch_size * num_tokens * embedding_dim);
+        std::cout << "-----Metal Kernel ----" << std::endl;
+        const auto m_buffer_EM = metal::create_buffer<T>(m_device, embedding_matrix_flat, vocab_size * embedding_dim);
+        const auto m_buffer_result = m_device->newBuffer(batch_size * num_tokens * embedding_dim, MTL::ResourceStorageModeShared);
+
+
 
         MTL::CommandBuffer *command_buffer = m_command_queue->commandBuffer();
         MTL::ComputeCommandEncoder *compute_encoder = command_buffer->computeCommandEncoder();
@@ -90,7 +93,7 @@ namespace tensorflow {
         compute_encoder->setBuffer(m_buffer_result, 0, 2);
         compute_encoder->setBytes(&num_tokens, sizeof(int16_t), 3);
         compute_encoder->setBytes(&vocab_size, sizeof(int16_t), 4);
-        compute_encoder->setBytes(&embed_dim, sizeof(int16_t), 5);
+        compute_encoder->setBytes(&embedding_dim, sizeof(int16_t), 5);
 
         const auto grid_size = MTL::Size(batch_size, num_tokens, 1);
         const auto thread_group_size = MTL::Size(batch_size, num_tokens, 1);
@@ -100,8 +103,8 @@ namespace tensorflow {
         command_buffer->waitUntilCompleted();
 
         auto *data_ptr = (__fp16 *) m_buffer_result->contents();
-        for (int i = 0; i != batch_size * num_tokens * embed_dim; i++) {
-          res[i] = (float) data_ptr[i];
+        for (int i = 0; i != batch_size * num_tokens * embedding_dim; i++) {
+          output_flat[i] = (T) data_ptr[i];
         }
       }
     };
