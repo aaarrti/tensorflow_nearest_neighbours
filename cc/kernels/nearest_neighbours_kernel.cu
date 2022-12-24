@@ -6,10 +6,6 @@
 #include "nearest_neighbours.h"
 
 
-#ifdef CUDA
-#define EIGEN_USE_GPU
-
-
 namespace tensorflow {
   namespace functor {
 
@@ -18,7 +14,7 @@ namespace tensorflow {
     // Define the CUDA kernel.
     template<typename T>
     __global__ void NearestNeighboursCudaKernel(
-        //const int32_t vocab_size,
+        const int32_t vocab_size,
         //const int32_t embedding_dim,
         //const tensorflow::Tensor *token_embeddings,
         //const tensorflow::Tensor *embedding_matrix_shaped,
@@ -73,5 +69,3 @@ namespace tensorflow {
     template struct NearestNeighboursFunctor<GPUDevice, float>;
   }
 }
-
-#endif
