@@ -1,0 +1,4 @@
+tensorflow==2.11.0
+tensorflow_metal==0.7.0
+compiledb==0.10.1
+black==22.12.0

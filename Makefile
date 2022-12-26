@@ -25,7 +25,7 @@ metal_lib:
 #TF_CFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
 TF_CFLAGS=-I/Users/artemsereda/miniconda3/lib/python3.10/site-packages/tensorflow/include -D_GLIBCXX_USE_CXX11_ABI=0 --std=c++17 -DEIGEN_MAX_ALIGN_BYTES=64
 #TF_LFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')
-TF_LFLAGS=-L/Users/artemsereda/miniconda3/lib/python3.10/site-packages/tensorflow -ltensorflow_framework.2 cc/ops/nearest_neighbours_op.cc
+TF_LFLAGS=-L/Users/artemsereda/miniconda3/lib/python3.10/site-packages/tensorflow -ltensorflow_framework.2
 
 CPU_SRC = cc/ops/nearest_neighbours_op.cc cc/kernels/nearest_neighbours_kernel.cc
 CUDA_LIB = build/_nearest_neighbours_kernel.cu.o
@@ -35,7 +35,7 @@ L_FLAGS = -shared ${TF_LFLAGS}
 TARGET_FLAG = -o build/_nearest_neighbours_op.so
 
 cpu_kernel:
-	g++ -Icc/include $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) $(TARGET_FLAG)
+	g++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) $(TARGET_FLAG)
 
 cuda_lib:
 	nvcc -I/cc/include -std=c++17 -c $(TF_CFLAGS) $(L_FLAGS) -D CUDA=1 -x cu -Xcompiler -fPIC --expt-relaxed-constexpr cc/kernels/nearest_neighbours_kernel.cu -o $(CUDA_LIB)
