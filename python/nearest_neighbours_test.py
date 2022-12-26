@@ -85,6 +85,7 @@ class TestOnGPU(test.TestCase):
     def test_on_gpu(self):
         with self.test_session():
             with ops.device("/gpu:0"):
+                import numpy as np
                 x = np.asarray([0.81442218, 0.38077085, 0.92314322, 0.90332325, 0.53478226,
                                 0.71365777, 0.37635094, 0.95588844, 0.0587169, 0.44392108,
                                 0.25226747, 0.61617229, 0.91802603, 0.37726091, 0.31898511,
