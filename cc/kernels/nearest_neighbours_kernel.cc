@@ -84,8 +84,7 @@ template <typename T> struct NearestNeighboursFunctor<CPUDevice, T> {
 template <typename Device, typename T>
 class NearestNeighboursOp : public OpKernel {
 public:
-  explicit NearestNeighboursOp(OpKernelConstruction *context)
-      : OpKernel(context) {}
+  explicit NearestNeighboursOp(OpKernelConstruction *context): OpKernel(context) {}
 
   void Compute(OpKernelContext *context) override {
     // Create inputs
@@ -126,14 +125,6 @@ REGISTER_CPU()
   extern template struct NearestNeighboursFunctor<GPUDevice, float>;           \
   REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"),             \
                           NearestNeighboursOp<GPUDevice, float>);
-REGISTER_GPU()
-#endif
-
-#ifdef METAL
-#define REGISTER_GPU()                                                         \
-  extern template struct NearestNeighboursFunctor<MetalDevice, float>;         \
-  REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"),             \
-                          NearestNeighboursOp<MetalDevice, float>);
 REGISTER_GPU()
 #endif
 

@@ -23,7 +23,7 @@ metal_lib:
 
 
 #TF_CFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
-TF_CFLAGS=-I/Users/artemsereda/miniconda3/lib/python3.10/site-packages/tensorflow/include -D_GLIBCXX_USE_CXX11_ABI=0 --std=c++17 -DEIGEN_MAX_ALIGN_BYTES=64
+TF_CFLAGS=-I/Users/artemsereda/miniconda3/lib/python3.10/site-packages/tensorflow/include -D_GLIBCXX_USE_CXX11_ABI=0 --std=c++17
 #TF_LFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')
 TF_LFLAGS=-L/Users/artemsereda/miniconda3/lib/python3.10/site-packages/tensorflow -ltensorflow_framework.2
 
@@ -44,4 +44,4 @@ cuda_kernel:
 	g++ $(CPU_SRC) $(CUDA_LIB) $(C_FLAGS) $(L_FLAGS) -D CUDA=1 -I/cc/include -I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart $(TARGET_FLAG)
 
 metal_kernel:
-	clang++ -Icc/include -D METAL=1 $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) cc/kernels/nearest_neighbours_kernel.metal.cc $(TARGET_FLAG) -framework Foundation -framework QuartzCore -framework Metal -D OBJC_DEBUG_MISSING_POOLS=YES
+	clang++ -x objective-c++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) cc/kernels/nearest_neighbours_kernel.mm.cc $(TARGET_FLAG) -framework Foundation
