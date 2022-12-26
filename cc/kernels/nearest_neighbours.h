@@ -19,9 +19,13 @@ namespace tensorflow {
     struct NearestNeighboursFunctor {
       void operator()(
           const Device &d,
-          const tensorflow::Tensor *token_embeddings,
-          const tensorflow::Tensor *embedding_matrix,
-          tensorflow::Tensor *output_tensor
+          const int32_t batch_size,
+          const int32_t num_tokens,
+          const int32_t vocab_size,
+          const int32_t embedding_dim,
+          const T *token_embeddings,
+          const T *embedding_matrix,
+          T *output
       );
     };
   }

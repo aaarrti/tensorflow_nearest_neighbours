@@ -2,10 +2,11 @@
 #define CA_PRIVATE_IMPLEMENTATION
 #define MTL_PRIVATE_IMPLEMENTATION
 
+#include <iostream>
 #include "Metal.hpp"
 #include "nearest_neighbours.h"
 #include "tensorflow/core/framework/op_kernel.h"
-#include <iostream>
+
 
 namespace tensorflow {
 
@@ -21,9 +22,9 @@ namespace metal {
 template <typename T>
 MTL::Buffer *create_buffer(MTL::Device *m_device, const T *arr, int size) {
   const auto buffer = m_device->newBuffer(size, MTL::ResourceStorageModeShared);
-  auto *data_ptr = (__fp16 *)buffer->contents();
+  auto *data_ptr = static_cast<__fp16*>(buffer->contents());
   for (auto index = 0; index != size; index++) {
-    data_ptr[index] = (__fp16)arr[index];
+    data_ptr[index] = static_cast<__fp16>(arr[index]);
   }
   return buffer;
 }
@@ -31,31 +32,23 @@ MTL::Buffer *create_buffer(MTL::Device *m_device, const T *arr, int size) {
 
 template <typename T> struct NearestNeighboursFunctor<MetalDevice, T> {
 
-  void operator()(const MetalDevice &device, const Tensor *token_embeddings,
-                  const Tensor *embedding_matrix, Tensor *output_tensor) {
+  void operator()(
+      const MetalDevice &device,
+      const int32_t batch_size,
+      const int32_t num_tokens,
+      const int32_t vocab_size,
+      const int32_t embedding_dim,
+      const T *token_embeddings,
+      const T *embedding_matrix,
+      T *output
+      ) {
+    // TODO: Check failed: IsAligned() ptr = 0x7fb380d4c2f0
     std::cout << "-----Metal Kernel ----" << std::endl;
-
-    const auto batch_size = static_cast<int32_t>(token_embeddings->dim_size(0));
-    const auto vocab_size = static_cast<int32_t>(embedding_matrix->dim_size(0));
-    const auto num_tokens = static_cast<int32_t>(token_embeddings->dim_size(1));
-    const auto embedding_dim =
-        static_cast<int32_t>(token_embeddings->dim_size(2));
-
-    std::cout << "batch_size = " << batch_size
-              << ", vocab_size = " << vocab_size
-              << ", num_tokens = " << num_tokens
-              << ", embedding_dim = " << embedding_dim << std::endl;
-
-    const T *token_embeddings_flat = (T *)token_embeddings->data();
-    const T *embedding_matrix_flat = (T *)embedding_matrix->data();
-    T *output_flat = (T *)output_tensor->data();
 
     NS::AutoreleasePool *p_pool = NS::AutoreleasePool::alloc()->init();
     MTL::Device *m_device = MTL::CreateSystemDefaultDevice();
     NS::Error *error = nullptr;
-    NS::String *path =
-        NS::String::string("_nearest_neighbours.metallib",
-                           NS::StringEncoding::ASCIIStringEncoding);
+    NS::String *path = NS::String::string("_nearest_neighbours.metallib", NS::StringEncoding::ASCIIStringEncoding);
     auto library = m_device->newLibrary(path, &error);
     if (!library) {
       std::cerr << "Failed to load default library: "
@@ -69,27 +62,21 @@ template <typename T> struct NearestNeighboursFunctor<MetalDevice, T> {
 
     if (!function) {
       std::cerr << "Failed to find the adder function." << std::endl;
+      abort();
     }
 
-    const auto function_pso =
-        m_device->newComputePipelineState(function, &error);
+    const auto function_pso = m_device->newComputePipelineState(function, &error);
     if (error) {
       std::cerr << error->localizedDescription()->utf8String() << std::endl;
       abort();
     }
 
     const auto m_command_queue = m_device->newCommandQueue();
-    const auto m_buffer_X =
-        metal::create_buffer<T>(m_device, token_embeddings_flat,
-                                batch_size * num_tokens * embedding_dim);
-    const auto m_buffer_EM = metal::create_buffer<T>(
-        m_device, embedding_matrix_flat, vocab_size * embedding_dim);
-    auto m_buffer_result =
-        m_device->newBuffer(batch_size * num_tokens * embedding_dim,
-                            MTL::ResourceStorageModeShared);
+    const auto m_buffer_X = metal::create_buffer<T>(m_device, token_embeddings, batch_size * num_tokens * embedding_dim);
+    const auto m_buffer_EM = metal::create_buffer<T>(m_device, embedding_matrix, vocab_size * embedding_dim);
+    auto m_buffer_result = m_device->newBuffer(batch_size * num_tokens * embedding_dim, MTL::ResourceStorageModeShared);
     MTL::CommandBuffer *command_buffer = m_command_queue->commandBuffer();
-    MTL::ComputeCommandEncoder *compute_encoder =
-        command_buffer->computeCommandEncoder();
+    MTL::ComputeCommandEncoder *compute_encoder = command_buffer->computeCommandEncoder();
 
     compute_encoder->setComputePipelineState(function_pso);
     compute_encoder->setBuffer(m_buffer_X, 0, 0);
@@ -106,10 +93,10 @@ template <typename T> struct NearestNeighboursFunctor<MetalDevice, T> {
     command_buffer->commit();
     command_buffer->waitUntilCompleted();
 
-    auto *data_ptr = (__fp16 *)m_buffer_result->contents();
+    auto *data_ptr = static_cast<__fp16*>(m_buffer_result->contents());
     for (int i = 0; i != batch_size * num_tokens * embedding_dim; i++) {
       std::cout << i << std::endl;
-      output_flat[i] = (T)data_ptr[i];
+      output[i] = static_cast<float>(data_ptr[i]);
     }
     p_pool->release();
   }

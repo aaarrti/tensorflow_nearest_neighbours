@@ -58,21 +58,19 @@ namespace tensorflow {
     template<typename T>
     struct NearestNeighboursFunctor<GPUDevice, T> {
 
-      void operator()(const GPUDevice &device, const Tensor *token_embeddings, const Tensor *embedding_matrix, Tensor *output_tensor) {
+      void operator()(
+      const GPUDevice &device,
+      const int32_t batch_size,
+      const int32_t num_tokens,
+      const int32_t vocab_size,
+      const int32_t embedding_dim,
+      const T *token_embeddings,
+      const T *embedding_matrix,
+      T *output_tensor
+      ) {
 
         std::cout << "-----Cuda Kernel ----" << std::endl;
-
-        const int batch_size = static_cast<int>(token_embeddings->dim_size(0));
-        const int vocab_size = static_cast<int>(embedding_matrix->dim_size(0));
-        const int num_tokens = static_cast<int>(token_embeddings->dim_size(1));
-        const int embedding_dim = static_cast<int>(token_embeddings->dim_size(2));
-
-        const T *token_embeddings_flat = token_embeddings->flat<T>().data();
-        const T *embedding_matrix_flat = embedding_matrix->flat<T>().data();
-        T *output_flat = output_tensor->flat<T>().data();
-
-        NearestNeighboursCudaKernel<T><<<batch_size, num_tokens>>>(token_embeddings_flat, embedding_matrix_flat,
-                                                                   output_flat, num_tokens, vocab_size, embedding_dim);
+        NearestNeighboursCudaKernel<T><<<batch_size, num_tokens>>>(token_embeddings, embedding_matrix, output_flat, num_tokens, vocab_size, embedding_dim);
       }
     };
 

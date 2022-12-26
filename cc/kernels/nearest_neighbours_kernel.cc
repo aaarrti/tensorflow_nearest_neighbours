@@ -2,6 +2,7 @@
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/platform/types.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+#include "unsupported/Eigen/CXX11/src/Tensor/Tensor.h"
 
 namespace tensorflow {
 
@@ -31,34 +32,33 @@ int32_t nearest_neighbour_index(
   return argmin;
 }
 
-template <typename T> struct NearestNeighboursFunctor<CPUDevice, T> {
-  void operator()(const CPUDevice &device, const Tensor *token_embeddings,
-                  const Tensor *embedding_matrix, Tensor *output_tensor) {
-    // Get input dims
-    const auto batch_size = static_cast<int32_t>(token_embeddings->dim_size(0));
-    const auto vocab_size = static_cast<int32_t>(embedding_matrix->dim_size(0));
-    const auto num_tokens = static_cast<int32_t>(token_embeddings->dim_size(1));
-    const auto embedding_dim =
-        static_cast<int32_t>(token_embeddings->dim_size(2));
-    // Shape Input
-    auto embedding_matrix_shaped =
-        embedding_matrix->shaped<T, 2>({vocab_size, embedding_dim});
+int32_t index_2d_flat(int32_t index_0, int32_t index_1, int32_t shape_1) {
+  return index_1 + index_0 * shape_1;
+}
 
-    // Reshape for indexing
-    const auto output_shaped =
-        output_tensor->shaped<T, 3>({batch_size, num_tokens, embedding_dim});
+int32_t index_3d_flat(int32_t index_0, int32_t index_1, int32_t index_2,
+                      int32_t shape_1, int32_t shape_2) {
+  return index_2 + index_1 * shape_2 + index_0 * shape_2 * shape_1;
+}
+
+template <typename T> struct NearestNeighboursFunctor<CPUDevice, T> {
+  void operator()(const CPUDevice &device, const int32_t batch_size,
+                  const int32_t num_tokens, const int32_t vocab_size,
+                  const int32_t embedding_dim, const T *token_embeddings,
+                  const T *embedding_matrix, T *output) {
 
     // Convert to Eigen::Matrix for computation
     const auto eigen_embedding_matrix =
         Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic,
                                        Eigen::RowMajor>>(
-            embedding_matrix->flat<T>().data(), vocab_size, embedding_dim);
+            embedding_matrix, vocab_size, embedding_dim);
 
     for (auto batch_index = 0; batch_index != batch_size; batch_index++) {
       const auto sequence =
           Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic,
                                          Eigen::RowMajor>>(
-              token_embeddings->SubSlice(batch_index).flat<T>().data(),
+              token_embeddings +
+                  index_3d_flat(batch_index, 0, 0, num_tokens, embedding_dim),
               vocab_size, embedding_dim);
 
       for (auto token_index = 0; token_index != num_tokens; token_index++) {
@@ -72,8 +72,9 @@ template <typename T> struct NearestNeighboursFunctor<CPUDevice, T> {
 
         // Fill the output
         for (auto i = 0; i != embedding_dim; i++) {
-          output_shaped({batch_index, token_index, i}) =
-              embedding_matrix_shaped({argmin, i});
+          output[index_3d_flat(batch_index, token_index, i, num_tokens,
+                               embedding_dim)] =
+              embedding_matrix[index_2d_flat(argmin, i, embedding_dim)];
         }
       }
     }
@@ -101,9 +102,16 @@ public:
     OP_REQUIRES_OK(context, context->allocate_output(
                                 0, token_embeddings->shape(), &output_tensor));
 
-    NearestNeighboursFunctor<Device, T>()(context->eigen_device<Device>(),
-                                          token_embeddings, embedding_matrix,
-                                          output_tensor);
+    const auto batch_size = static_cast<int32_t>(token_embeddings->dim_size(0));
+    const auto vocab_size = static_cast<int32_t>(embedding_matrix->dim_size(0));
+    const auto num_tokens = static_cast<int32_t>(token_embeddings->dim_size(1));
+    const auto embedding_dim =
+        static_cast<int32_t>(token_embeddings->dim_size(2));
+
+    NearestNeighboursFunctor<Device, T>()(
+        context->eigen_device<Device>(), batch_size, num_tokens, vocab_size,
+        embedding_dim, token_embeddings->flat<T>().data(),
+        embedding_matrix->flat<T>().data(), output_tensor->flat<T>().data());
   }
 };
 
@@ -122,11 +130,11 @@ REGISTER_GPU()
 #endif
 
 #ifdef METAL
-#define REGISTER_METAL()                                                       \
+#define REGISTER_GPU()                                                         \
   extern template struct NearestNeighboursFunctor<MetalDevice, float>;         \
   REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"),             \
                           NearestNeighboursOp<MetalDevice, float>);
-REGISTER_METAL()
+REGISTER_GPU()
 #endif
 
 } // namespace functor
