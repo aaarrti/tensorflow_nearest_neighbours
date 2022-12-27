@@ -15,9 +15,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install tensorflow==2.11.0 clang
+        run: |
+          pip install tensorflow==2.11.0
+          apt-get install clang
       - name: Build Kernel
-        run: make cpu_kernel
+        run: |
+          mkdir build
+          make cpu_kernel
       - name: Test
         run: make test
   test_macos:
@@ -35,6 +39,8 @@ jobs:
       - name: Install dependencies
         run: pip install tensorflow==2.11.0
       - name: Build Kernel
-        run: make cpu_kernel
+        run: |
+          mkdir build
+          make cpu_kernel
       - name: Test
         run: make test
