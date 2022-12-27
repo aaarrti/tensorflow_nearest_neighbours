@@ -5,7 +5,7 @@ jobs:
   test_linux:
     runs-on: ubuntu-22.04
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         python-version: [ "3.8", "3.9", "3.10", "3.11" ]
     steps:
@@ -27,7 +27,7 @@ jobs:
   test_macos:
     runs-on: macos-12
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         python-version: [ "3.8", "3.9", "3.10", "3.11" ]
     steps:
