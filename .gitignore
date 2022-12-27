@@ -191,5 +191,6 @@ cython_debug/
 .idea
 .fleet
 .DS_Store
-cc/include
+build
 artifacts
+compile_commands.json
