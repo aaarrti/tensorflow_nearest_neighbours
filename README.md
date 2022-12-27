@@ -31,7 +31,7 @@
     
 - Then, we can test the OP
 ```bash
-make test_so
+make test
 ```
 - Afterwards, we build a pip package from it:
   - CPU version
