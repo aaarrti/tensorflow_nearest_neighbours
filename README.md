@@ -1,15 +1,16 @@
 # TensorFlow Nearest Neighbours Op
 
 
-| Tool       | Ubuntu Version | MacOS Version |
-|------------|----------------|---------------|
-| Clang      | 10.0.0         | 14.0.0        |
-| Tensorflow | 2.11.0         | 2.11.0        |
-| Python     | 3.10           | 3.10          |
-| cuda       | 11.2           | -             | 
-| nvcc       | V11.2.152      | -             | 
-| metal      | -              | 31001.667     | 
-| metallib   | -              | 31001.667     |                                             
+| Tool       | Ubuntu    | MacOS     |
+|------------|-----------|-----------|
+| OS         | 20.04.5   |   12.6.1  |
+| Clang      | 10.0.0    | 14.0.0    |
+| Tensorflow | 2.11.0    | 2.11.0    | 
+| Python     | 3.9       | 3.8       |
+| cuda       | 11.2      | -         | 
+| nvcc       | V11.2.152 | -         | 
+| metal      | -         | 31001.667 | 
+| metallib   | -         | 31001.667 |                                             
 
 ### Building from source:
 - First we need to build the shared object (library)
@@ -33,9 +34,20 @@
 make test_so
 ```
 - Afterwards, we build a pip package from it:
-```bash
-make pip_pkg
-```
+  - CPU version
+  ```bash
+  make pip_pkg_cpu
+  ```
+  - Cuda version
+  ```bash
+  make pip_pkg_cuda
+  ```
+  - Metal version
+  ```bash
+  make pip_pkg_metal
+  ```
+  
+
 - And finally, we can install it: 
 ```bash
 pip install build/dist/*.whl 

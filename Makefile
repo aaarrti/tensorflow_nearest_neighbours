@@ -1,6 +1,5 @@
 clean:
 	rm -rf build/*
-	rm -rf artifacts/*.whl
 
 test:
 	cp python/nearest_neighbours_test.py build
@@ -10,17 +9,31 @@ test_gpu:
 	cp python/nearest_neighbours_test.py build;
 	cd build; python -m unittest nearest_neighbours_test.TestOnGPU
 
-pip_pkg:
+prepare_pip_pkg:
 	mkdir build/nearest_neighbours | true
 	cp setup.py build/nearest_neighbours
 	cp python/__init__.py build/nearest_neighbours
 	cp python/nearest_neighbours.py build/nearest_neighbours
 	cp MANIFEST.in build/MANIFEST.in
 	cp build/*.so build/nearest_neighbours
-	cp build/*.metallib build/nearest_neighbours | true
-	cd build; python3 nearest_neighbours/setup.py bdist_wheel
+
+
+pip_pkg_cpu: prepare_pip_pkg
+	cd build; python3 nearest_neighbours/setup.py egg_info --tag-build=cpu bdist_wheel
 	mkdir artifacts | true
 	cp build/dist/*.whl artifacts/
+
+pip_pkg_cuda: prepare_pip_pkg
+	cd build; python3 nearest_neighbours/setup.py egg_info --tag-build=cuda bdist_wheel
+	mkdir artifacts | true
+	cp build/dist/*.whl artifacts/
+
+pip_pkg_metal: prepare_pip_pkg
+	cp build/*.metallib build/nearest_neighbours | true
+	cd build; python3 nearest_neighbours/setup.py egg_info --tag-build=metal bdist_wheel
+	mkdir artifacts | true
+	cp build/dist/*.whl artifacts/
+
 
 metal_lib:
 	xcrun -sdk macosx metal -c cc/kernels/nearest_neighbours.metal -o build/_nearest_neighbours.air -ffast-math
