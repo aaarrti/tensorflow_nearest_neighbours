@@ -2,7 +2,7 @@
 #define EIGEN_USE_GPU
 #endif
 
-#include "nearest_neighbours.h"
+#include "nearest_neighbours.hpp"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/platform/types.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
