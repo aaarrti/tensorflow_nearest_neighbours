@@ -44,6 +44,7 @@ pip install build/dist/*.whl
 ```python
 import tensorflow as tf
 from nearest_neighbours import nearest_neighbours
+tf.debugging.set_log_device_placement(True)
 
 x = tf.random.uniform(shape=[8, 10, 32])
 em = tf.random.uniform(shape=[500, 32])

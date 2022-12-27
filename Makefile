@@ -1,5 +1,6 @@
 clean:
 	rm -rf build/*
+	rm -rf artifacts/*.whl
 
 test:
 	cp python/nearest_neighbours_test.py build

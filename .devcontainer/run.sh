@@ -1,5 +1,7 @@
 #!/bin/zsh
 
+set -e
+
 PROJECT_DIR=$(realpath "$(pwd)"/..)
 
 docker build -t devcontainer .

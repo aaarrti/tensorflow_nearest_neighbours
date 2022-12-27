@@ -1,4 +1,5 @@
 #define EIGEN_USE_GPU
+
 #include "tensorflow/core/framework/op_kernel.h"
 #include "nearest_neighbours.hpp"
 
@@ -35,7 +36,7 @@ namespace tensorflow {
         for (int i = 0; i != embedding_dim; i++) {
           const int index_in_embedding_matrix = index_2d_flat_cuda(word_index, i, embedding_dim);
           const int index_in_token_embeddings = index_3d_flat_cuda(index_in_batch, index_in_sequence, i, num_tokens,
-                                                              embedding_dim);
+                                                                   embedding_dim);
           const T val1 = embedding_matrix[index_in_embedding_matrix];
           const T val2 = token_embeddings[index_in_token_embeddings];
           dist += (T) pow(val1 - val2, 2);
@@ -61,10 +62,7 @@ namespace tensorflow {
     struct NearestNeighboursFunctor<GPUDevice, T> {
 
       void operator()(const GPUDevice &device, int batch_size, int num_tokens, int vocab_size, int embedding_dim,
-          const T *token_embeddings, const T *embedding_matrix, T *output) {
-        #ifdef DEBUG
-        std::cout << "-----Cuda Kernel ----" << std::endl;
-        #endif
+                      const T *token_embeddings, const T *embedding_matrix, T *output) {
         NearestNeighboursCudaKernel<T><<<batch_size, num_tokens>>>(token_embeddings, embedding_matrix, output,
                                                                    num_tokens, vocab_size, embedding_dim);
       }

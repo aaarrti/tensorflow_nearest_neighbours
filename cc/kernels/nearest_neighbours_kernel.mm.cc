@@ -9,13 +9,33 @@
 
 
 @protocol TF_MetalStream
-
 - (dispatch_queue_t) queue;
 - (id <MTLCommandBuffer>) currentCommandBuffer;
 - (void) commit;
 - (void) commitAndWait;
-
 @end
+
+
+bool ends_with(std::string const &value, std::string const &ending) {
+  if (ending.size() > value.size()) return false;
+  return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+std::string locate_metal_lib(std::string const &root) {
+  //std::cout << "locate_metal_lib(root=" << root << ")" << std::endl;
+  using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
+  auto installation_root = std::filesystem::path(root);
+
+  for (const std::filesystem::directory_entry &dirEntry: recursive_directory_iterator(installation_root)) {
+    if (ends_with(dirEntry.path().string(), "_nearest_neighbours.metallib")) {
+      std::cout << "Found metallib at: " << dirEntry.path() << std::endl;
+      return dirEntry.path().string();
+    }
+    //std::cout << dirEntry.path().string() << std::endl;
+  }
+  return "";
+}
+
 
 // The singleton class for kernel library.
 class KernelLibrarySingleton {
@@ -24,10 +44,22 @@ public:
     if (sInstance == nullptr) {
       sInstance = new KernelLibrarySingleton();
 
-      printf("Loading kernel library...\n");
+      NSString *bundlePath = [[NSBundle mainBundle] resourcePath];
+      NSString *parentPath = [bundlePath stringByDeletingLastPathComponent];
+      auto parent_path_str = [parentPath cString];
+
+      std::string lib_path = locate_metal_lib(std::string(parent_path_str) + "/lib");
+      if (lib_path == "") {
+        lib_path = locate_metal_lib(std::filesystem::current_path().string());
+      }
+
+      if (lib_path == "") {
+        std::cerr << "Failed to find metallib" << std::endl;
+        abort();
+      }
 
       @autoreleasepool {
-        NSString *libraryFile = @"_nearest_neighbours.metallib";
+        NSString *libraryFile = [NSString stringWithUTF8String:lib_path.c_str()];
         id <MTLDevice> device = MTLCreateSystemDefaultDevice();
 
         NSError *error = nil;
@@ -44,7 +76,7 @@ public:
   }
 
 public:
-  static id <MTLLibrary> library;
+  static id<MTLLibrary> library;
 
 private:
   KernelLibrarySingleton() {}
@@ -53,10 +85,10 @@ private:
 };
 
 KernelLibrarySingleton *KernelLibrarySingleton::sInstance = nullptr;
-id <MTLLibrary> KernelLibrarySingleton::library = nil;
+id<MTLLibrary> KernelLibrarySingleton::library = nil;
 
-std::vector<int64_t> getShape(TF_Tensor *tensor) {
-  std::vector<int64_t> shape;
+std::vector<int64_t>getShape(TF_Tensor *tensor) {
+  std::vector<int64_t>shape;
   const int dimensionCount = TF_NumDims(tensor);
   shape.resize(dimensionCount);
   for (int dim = 0; dim < dimensionCount; dim++) {
@@ -77,9 +109,6 @@ static void NearestNeighboursOp_Delete(void *kernel) {
 }
 
 static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
-  #ifdef DEBUG
-  printf("----------Metal Kernel----------\n");
-  #endif
 
   TF_Status *status = TF_NewStatus();
 
@@ -112,7 +141,7 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
   @autoreleasepool {
 
-    id <TF_MetalStream> metalStream = (id <TF_MetalStream>) (TF_GetStream(ctx, status));
+    id<TF_MetalStream> metalStream = (id<TF_MetalStream>) (TF_GetStream(ctx, status));
 
     if (TF_GetCode(status) != TF_OK) {
       printf("no stream was found: %s\n", TF_Message(status));
@@ -126,24 +155,24 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
     dispatch_sync(metalStream.queue, ^() {
       @autoreleasepool {
-        id <MTLCommandBuffer> commandBuffer = metalStream.currentCommandBuffer;
-        id <MTLDevice> device = commandBuffer.device;
+        id<MTLCommandBuffer> commandBuffer = metalStream.currentCommandBuffer;
+        id<MTLDevice> device = commandBuffer.device;
 
         NSError *error = nil;
-        id <MTLLibrary> library = KernelLibrarySingleton::getInstance().library;
+        id<MTLLibrary> library = KernelLibrarySingleton::getInstance().library;
 
-        id <MTLFunction> function = nil;
+        id<MTLFunction> function = nil;
 
         function = [[library newFunctionWithName:@"nearest_neighbours"] autorelease];
 
-        id <MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function error:&error];
+        id<MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function error:&error];
         assert(pipeline);
 
-        id <MTLBuffer> inputsBuffer = (id <MTLBuffer>) TF_TensorData(token_embeddings);
-        id <MTLBuffer> embeddingsBuffer = (id <MTLBuffer>) TF_TensorData(embedding_matrix);
-        id <MTLBuffer> outputsBuffer = (id <MTLBuffer>) TF_TensorData(outputs);
+        id<MTLBuffer> inputsBuffer = (id<MTLBuffer>) TF_TensorData(token_embeddings);
+        id<MTLBuffer> embeddingsBuffer = (id<MTLBuffer>) TF_TensorData(embedding_matrix);
+        id<MTLBuffer> outputsBuffer = (id<MTLBuffer>) TF_TensorData(outputs);
 
-        id <MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
+        id<MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
 
         [encoder setComputePipelineState:pipeline];
 
