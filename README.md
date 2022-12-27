@@ -1,55 +1,65 @@
 # TensorFlow Nearest Neighbours Op
 
-| Tool       | Version    |
-|------------|------------|
-| Bazel      | 5.1.1      |
-| Clang      | 14.0.0     |
-| Tensorflow | 2.10.0-cpu |
-| Python     | 3.9        |
-| Protobuf   | 3.19.6     |
 
-### Run Tests
+| Tool       | Ubuntu    | MacOS     |
+|------------|-----------|-----------|
+| OS         | 20.04.5   |   12.6.1  |
+| Clang      | 10.0.0    | 14.0.0    |
+| Tensorflow | 2.11.0    | 2.11.0    | 
+| Python     | 3.9       | 3.8       |
+| cuda       | 11.2      | -         | 
+| nvcc       | V11.2.152 | -         | 
+| metal      | -         | 31001.667 | 
+| metallib   | -         | 31001.667 |                                             
 
+### Building from source:
+- First we need to build the shared object (library)
+  - CPU only:
+    ```bash
+    make cpu_kernel
+    ```
+  - CUDA (linux only)
+    ```bash
+    make cuda_lib
+    make cuda_kernel
+    ```
+  - Metal (macOS only)
+    ```bash
+    make metal_lib
+    make metal_kernel
+    ```
+    
+- Then, we can test the OP
 ```bash
-bazel run //nearest_neighbours:nearest_neighbours_ops_py_test       
+make test
 ```
+- Afterwards, we build a pip package from it:
+  - CPU version
+  ```bash
+  make pip_pkg_cpu
+  ```
+  - Cuda version
+  ```bash
+  make pip_pkg_cuda
+  ```
+  - Metal version
+  ```bash
+  make pip_pkg_metal
+  ```
+  
 
-### Build PIP Package
-
+- And finally, we can install it: 
 ```bash
-  ./configure.sh
-  bazel build build_pip_pkg
-  bazel-bin/build_pip_pkg artifacts
+pip install build/dist/*.whl 
 ```
-
-### Install and Test PIP Package
-
-Once the pip package has been built, you can install it with
-
-```bash
-pip install artifacts/*.whl
-```
-
-Then test out the pip package
-
+- Verify it works
 ```python
 import tensorflow as tf
 from nearest_neighbours import nearest_neighbours
+tf.debugging.set_log_device_placement(True)
 
 x = tf.random.uniform(shape=[8, 10, 32])
 em = tf.random.uniform(shape=[500, 32])
 result = nearest_neighbours(x, em)
 print(result.shape)
 ```
-
-## References:
-
-- [Extending TensorFlow with Custom C++ Operations](https://www.gresearch.co.uk/blog/article/extending-tensorflow-with-custom-c-operations/)
-- [Create an Op](https://www.tensorflow.org/guide/create_op)
-- [TensorFlow Custom Op](https://github.com/tensorflow/custom-op)
-
-## TODO:
-
-- Add GPU (Metal) Implementation
-  Reference: [Customizing a TensorFlow operation](https://developer.apple.com/documentation/metal/metal_sample_code_library/customizing_a_tensorflow_operation)
-  

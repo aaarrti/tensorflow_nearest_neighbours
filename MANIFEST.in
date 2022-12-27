@@ -1,1 +1,1 @@
-recursive-include nearest_neighbours *.so
+recursive-include nearest_neighbours *.so *.metallib

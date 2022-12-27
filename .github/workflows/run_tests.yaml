@@ -1,0 +1,45 @@
+name: Run Test
+on: [ push ]
+
+jobs:
+  test_linux:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.8", "3.9", "3.10" ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install tensorflow clang
+      - name: Build Kernel
+        run: |
+          mkdir build
+          make cpu_kernel
+      - name: Test
+        run: make test
+  test_macos:
+    runs-on: macos-12
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.8", "3.9", "3.10" ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install tensorflow
+      - name: Build Kernel
+        run: |
+          mkdir build
+          make cpu_kernel
+      - name: Test
+        run: make test

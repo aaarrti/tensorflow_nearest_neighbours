@@ -3,12 +3,11 @@ from setuptools import setup
 from setuptools.dist import Distribution
 from setuptools.command.install import install
 
-__version__ = '0.0.1'
+__version__ = "0.0.1"
 
-REQUIRED_PACKAGES = [
-]
+REQUIRED_PACKAGES = []
 
-project_name = 'nearest_neighbours'
+project_name = "nearest_neighbours"
 
 
 class InstallPlatlib(install):
@@ -31,8 +30,8 @@ setup(
     name=project_name,
     version=__version__,
     description="Nearest Neighbours for LM evaluation",
-    author='Artem Sereda',
-    author_email='artem.sereda@campus.tu-berlin.de',
+    author="Artem Sereda",
+    author_email="artem.sereda@campus.tu-berlin.de",
     # Contained modules and scripts.
     packages=find_packages(),
     install_requires=REQUIRED_PACKAGES,
@@ -40,14 +39,14 @@ setup(
     include_package_data=True,
     zip_safe=False,
     distclass=BinaryDistribution,
-    cmdclass={'install': InstallPlatlib},
+    cmdclass={"install": InstallPlatlib},
     # PyPI package information.
     classifiers=[
-        'Intended Audience :: Science/Research',
-        'Programming Language :: Python :: 3.9',
-        'Topic :: Scientific/Engineering :: Mathematics',
-        'Topic :: Software Development :: Libraries :: Python Modules',
+        "Intended Audience :: Science/Research",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    keywords='tensorflow custom op machine learning',
-    python_requires=">=3.9"
+    keywords="tensorflow custom op machine learning",
+    python_requires=">=3.8",
 )
