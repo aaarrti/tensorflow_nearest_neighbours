@@ -11,25 +11,13 @@
 | metal      | -              | 31001.667     | 
 | metallib   | -              | 31001.667     |                                             
 
-### Example usage:
-
-```python
-import tensorflow as tf
-from nearest_neighbours import nearest_neighbours
-
-x = tf.random.uniform(shape=[8, 10, 32])
-em = tf.random.uniform(shape=[500, 32])
-result = nearest_neighbours(x, em)
-print(result.shape)
-```
-
 ### Building from source:
-- First we need to build the shared library
+- First we need to build the shared object (library)
   - CPU only:
     ```bash
     make cpu_kernel
     ```
-  - CUDA 
+  - CUDA (linux only)
     ```bash
     make cuda_lib
     make cuda_kernel
@@ -42,7 +30,7 @@ print(result.shape)
     
 - Then, we can test the OP
 ```bash
-make test
+make test_so
 ```
 - Afterwards, we build a pip package from it:
 ```bash
@@ -51,4 +39,14 @@ make pip_pkg
 - And finally, we can install it: 
 ```bash
 pip install build/dist/*.whl 
+```
+- Verify it works
+```python
+import tensorflow as tf
+from nearest_neighbours import nearest_neighbours
+
+x = tf.random.uniform(shape=[8, 10, 32])
+em = tf.random.uniform(shape=[500, 32])
+result = nearest_neighbours(x, em)
+print(result.shape)
 ```

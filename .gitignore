@@ -194,3 +194,4 @@ cython_debug/
 build
 artifacts
 compile_commands.json
+nearest_neighbours

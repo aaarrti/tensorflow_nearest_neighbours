@@ -3,19 +3,23 @@ clean:
 
 test:
 	cp python/nearest_neighbours_test.py build
-	cd build; python -m unittest nearest_neighbours_test
+	cd build; python -m unittest nearest_neighbours_test.TestSO
 
 test_gpu:
 	cp python/nearest_neighbours_test.py build;
 	cd build; python -m unittest nearest_neighbours_test.TestOnGPU
 
 pip_pkg:
-	cp -f setup.py build
-	cp -f python/__init__.py build
-	cp -f python/nearest_neighbours.py build
-	cd build; pip install .
+	mkdir build/nearest_neighbours | true
+	cp setup.py build/nearest_neighbours
+	cp python/__init__.py build/nearest_neighbours
+	cp python/nearest_neighbours.py build/nearest_neighbours
+	cp MANIFEST.in build/MANIFEST.in
+	cp build/*.so build/nearest_neighbours
+	cp build/*.metallib build/nearest_neighbours | true
+	cd build; python3 nearest_neighbours/setup.py bdist_wheel
 	mkdir artifacts | true
-	cp build/dist/* artifacts/
+	cp build/dist/*.whl artifacts/
 
 metal_lib:
 	xcrun -sdk macosx metal -c cc/kernels/nearest_neighbours.metal -o build/_nearest_neighbours.air -ffast-math
