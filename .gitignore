@@ -191,9 +191,10 @@ cython_debug/
 .idea
 .fleet
 .DS_Store
-artifacts
 .bazelrc
+.clwb
 bazel-bin
 bazel-out
 bazel-testlogs
 bazel-tf_nearest_neighbours
+artifacts
