@@ -1,5 +1,3 @@
-"""Setup TensorFlow as external dependency"""
-
 _TF_HEADER_DIR = "TF_HEADER_DIR"
 _TF_SHARED_LIBRARY_DIR = "TF_SHARED_LIBRARY_DIR"
 _TF_SHARED_LIBRARY_NAME = "TF_SHARED_LIBRARY_NAME"
@@ -14,7 +12,6 @@ def _tpl(repository_ctx, tpl, substitutions = {}, out = None):
     )
 
 def _fail(msg):
-    """Output failure message when auto configuration fails."""
     red = "\033[0;31m"
     no_color = "\033[0m"
     fail("%sPython Configuration Error:%s %s\n" % (red, no_color, msg))
@@ -25,17 +22,6 @@ def _execute(
         error_msg = None,
         error_details = None,
         empty_stdout_fine = False):
-    """Executes an arbitrary shell command.
-    Args:
-      repository_ctx: the repository_ctx object
-      cmdline: list of strings, the command to execute
-      error_msg: string, a summary of the error if the command fails
-      error_details: string, details about the error or steps to fix it
-      empty_stdout_fine: bool, if True, an empty stdout result is fine, otherwise
-        it's an error
-    Return:
-      the result of repository_ctx.execute(cmdline)
-    """
     result = repository_ctx.execute(cmdline)
     if result.stderr or not (empty_stdout_fine or result.stdout):
         _fail("\n".join([
@@ -100,26 +86,6 @@ def _symlink_genrule_for_dir(
         src_files = [],
         dest_files = [],
         tf_pip_dir_rename_pair = []):
-    """Returns a genrule to symlink(or copy if on Windows) a set of files.
-
-    If src_dir is passed, files will be read from the given directory; otherwise
-    we assume files are in src_files and dest_files.
-
-    Args:
-        repository_ctx: the repository_ctx object.
-        src_dir: source directory.
-        dest_dir: directory to create symlink in.
-        genrule_name: genrule name.
-        src_files: list of source files instead of src_dir.
-        dest_files: list of corresonding destination files.
-        tf_pip_dir_rename_pair: list of the pair of tf pip parent directory to
-          replace. For example, in TF pip package, the source code is under
-          "tensorflow_core", and we might want to replace it with
-          "tensorflow" to match the header includes.
-
-    Returns:
-        genrule target that creates the symlinks.
-    """
     # Check that tf_pip_dir_rename_pair has the right length
     tf_pip_dir_rename_pair_len = len(tf_pip_dir_rename_pair)
     if tf_pip_dir_rename_pair_len != 0 and tf_pip_dir_rename_pair_len !=2:

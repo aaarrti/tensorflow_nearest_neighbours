@@ -1,5 +1,8 @@
 package(default_visibility = ["//visibility:public"])
 
+load("//metal:metal.bzl", "metallib")
+
+# CPU
 cc_binary(
     name = "python/ops/_nearest_neighbours_ops.so",
     srcs = [
@@ -14,9 +17,6 @@ cc_binary(
             "-fPIC",
             "-O3",
         ],
-    }),
-    features = select({
-        "//conditions:default": [],
     }),
     linkshared = 1,
     deps = [
@@ -60,3 +60,42 @@ py_library(
         ":nearest_neighbours_ops_py",
     ],
 )
+
+# Metal
+metallib(
+    name = "_nearest_neighbours.metallib",
+    input = "cc/kernels/nearest_neighbours.metal",
+    output = "python/ops/_nearest_neighbours.metallib",
+)
+
+cc_binary(
+    name = "python/ops/_nearest_neighbours_ops_metal.so",
+    srcs = [
+        "cc/kernels/nearest_neighbours.h",
+        "cc/kernels/nearest_neighbours_kernel.cc",
+        "cc/kernels/nearest_neighbours_kernel_metal.cc",
+        "cc/ops/nearest_neighbours_op.cc",
+    ],
+    copts = select({
+        "//conditions:default": [
+            "-pthread",
+            "-std=c++17",
+            "-fPIC",
+            "-O3",
+            "-x",
+            "objective-c++",
+            "-framework ",
+            "Foundation",
+            "-undefined",
+            "dynamic_lookup",
+        ],
+    }),
+    linkshared = 1,
+    deps = [
+        #":_nearest_neighbours.metallib",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+# Cuda
