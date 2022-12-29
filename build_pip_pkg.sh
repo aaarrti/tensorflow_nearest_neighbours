@@ -1,11 +1,12 @@
 set -e
+set -x
 
 TF_NEED_CUDA_LINE=$(grep -n "TF_NEED_CUDA" .bazelrc)
 TF_NEED_CUDA=$(echo "$TF_NEED_CUDA_LINE" | cut -d "=" -f 2)
 TF_NEED_METAL_LINE=$(grep -n "TF_NEED_METAL" .bazelrc)
 TF_NEED_METAL=$(echo "$TF_NEED_METAL_LINE" | cut -d "=" -f 2)
-
-PIP_FILE_PREFIX="bazel-bin/build_pip_pkg.runfiles/__main__/"
+PROJECT_DIR_LINE=$(grep -n "PROJECT_DIR" .bazelrc)
+PROJECT_DIR=$(echo "$PROJECT_DIR_LINE" | cut -d "=" -f 2)
 DEST="artifacts"
 
 mkdir -p ${DEST}
@@ -16,10 +17,10 @@ TMPDIR=$(mktemp -d -t tmp.XXXXXXXXXX)
 echo "$(date)" : "=== Using tmpdir: ${TMPDIR}"
 echo "=== Copy TensorFlow Custom op files"
 
-cp ${PIP_FILE_PREFIX}setup.py "${TMPDIR}"
-cp ${PIP_FILE_PREFIX}MANIFEST.in "${TMPDIR}"
-cp ${PIP_FILE_PREFIX}LICENSE "${TMPDIR}"
-rsync -avm -L --exclude='*_test.py' ${PIP_FILE_PREFIX}nearest_neighbours "${TMPDIR}"
+cp setup.py "${TMPDIR}"
+cp MANIFEST.in "${TMPDIR}"
+cp LICENSE "${TMPDIR}"
+rsync -avm -L --exclude='*_test.py' nearest_neighbours "${TMPDIR}"
 
 pushd "${TMPDIR}"
 echo "$(date)" : "=== Building wheel"
@@ -32,7 +33,9 @@ else
   python3 setup.py egg_info --tag-build=.cpu bdist_wheel
 fi
 
-cp dist/*.whl "${DEST}"
+PROJECT_ARTIFACTS_DIR="${PROJECT_DIR}/artifacts"
+PROJECT_ARTIFACTS_DIR="$(echo "${PROJECT_ARTIFACTS_DIR}" | tr -d '"')"
+cp dist/*.whl "$PROJECT_ARTIFACTS_DIR"
 popd
 rm -rf "${TMPDIR}"
-echo "$(date)" : "=== Output wheel file is in: ${DEST}"
+echo "$(date)" : "=== Output wheel file is in: ${PROJECT_ARTIFACTS_DIR}"

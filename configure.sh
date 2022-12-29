@@ -20,6 +20,8 @@ function write_action_env_to_bazelrc() {
 # Remove .bazelrc if it already exist
 [ -e .bazelrc ] && rm .bazelrc
 
+
+PROJECT_DIR=$(pwd)
 TF_CFLAGS=$(python3 -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
 TF_LFLAGS="$(python3 -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')"
 
@@ -82,3 +84,4 @@ write_action_env_to_bazelrc "TF_HEADER_DIR" ${HEADER_DIR}
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
 write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_CUDA}
 write_action_env_to_bazelrc "TF_NEED_METAL" ${TF_NEED_METAL}
+write_action_env_to_bazelrc "PROJECT_DIR" ${PROJECT_DIR}
