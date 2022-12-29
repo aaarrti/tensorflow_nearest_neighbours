@@ -1,7 +1,7 @@
 #define EIGEN_USE_GPU
 
 #include "tensorflow/core/framework/op_kernel.h"
-#include "nearest_neighbours.hpp"
+#include "nearest_neighbours.h"
 
 
 namespace tensorflow {

@@ -191,7 +191,9 @@ cython_debug/
 .idea
 .fleet
 .DS_Store
-build
 artifacts
-compile_commands.json
-nearest_neighbours
+.bazelrc
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-tf_nearest_neighbours
