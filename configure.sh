@@ -82,6 +82,14 @@ write_to_bazelrc "build -c opt"
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" ${SHARED_LIBRARY_DIR}
 write_action_env_to_bazelrc "TF_HEADER_DIR" ${HEADER_DIR}
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
-write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_CUDA}
+write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_METAL}
 write_action_env_to_bazelrc "TF_NEED_METAL" ${TF_NEED_METAL}
 write_action_env_to_bazelrc "PROJECT_DIR" ${PROJECT_DIR}
+
+if [[ "$TF_NEED_CUDA" == "1" ]]; then
+  write_to_bazelrc "build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true"
+  write_to_bazelrc "build --config=cuda"
+fi
+
+
+
