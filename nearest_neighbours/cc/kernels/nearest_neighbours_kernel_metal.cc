@@ -46,7 +46,7 @@ class KernelLibrarySingleton {
 
       NSString *bundlePath = [[NSBundle mainBundle] resourcePath];
       NSString *parentPath = [bundlePath stringByDeletingLastPathComponent];
-      auto parent_path_str = [parentPath cString];
+      auto parent_path_str = [parentPath cStringUsingEncoding:NSISOLatin1StringEncoding];
 
       std::string lib_path =
           locate_metal_lib(std::string(parent_path_str) + "/lib");
@@ -230,4 +230,4 @@ class InitPlugin {
   InitPlugin() { RegisterKernel<float>("GPU"); }
 };
 
-InitPlugin gInitPlugin;%
+InitPlugin gInitPlugin;
