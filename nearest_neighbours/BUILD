@@ -50,7 +50,6 @@ cc_binary(
 cc_library(
     name = "_nearest_neighbours.cu.o",
     srcs = [
-        "cc/kernels/nearest_neighbours.h",
         "cc/kernels/nearest_neighbours_kernel.cu",
     ],
     copts = [
@@ -62,6 +61,8 @@ cc_library(
         "-DTENSORFLOW_USE_NVCC=1",
         "-D CUDA=1",
         "-x cuda",
+        "-nvcc_options=relaxed-constexpr",
+        "-nvcc_options=ftz=true",
     ]),
     linkopts = [],
     deps = [
