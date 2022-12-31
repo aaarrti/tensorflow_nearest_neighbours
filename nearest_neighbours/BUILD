@@ -16,7 +16,6 @@ cc_library(
     deps = [
         "@local_config_cuda//cuda:cudart",
     ],
-    alwayslink = 1,
 )
 
 # CPU
@@ -51,6 +50,7 @@ cc_binary(
 cc_library(
     name = "_nearest_neighbours.cu.o",
     srcs = [
+        "cc/kernels/nearest_neighbours.h",
         "cc/kernels/nearest_neighbours_kernel.cu",
     ],
     copts = [

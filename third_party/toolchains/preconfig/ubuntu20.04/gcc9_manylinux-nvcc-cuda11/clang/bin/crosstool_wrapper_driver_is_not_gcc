@@ -122,8 +122,7 @@ def GetHostCompilerOptions(argv):
 
 def _update_options(nvcc_options):
     update_options = {"relaxed-constexpr": "expt-relaxed-constexpr"}
-    return [update_options[opt] if opt in update_options else opt
-            for opt in nvcc_options]
+    return [update_options[opt] if opt in update_options else opt for opt in nvcc_options]
 
 
 def GetNvccOptions(argv):
@@ -189,23 +188,17 @@ def InvokeNvcc(argv, log=False):
     if len(out_file) != 1:
         return 1
 
-    opt = (' -O2' if (len(opt_option) > 0 and int(opt_option[0]) > 0)
-           else ' -g -G')
+    opt = (' -O2' if (len(opt_option) > 0 and int(opt_option[0]) > 0) else ' -g -G')
 
-    includes = (' -I ' + ' -I '.join(include_options)
-                if len(include_options) > 0
-                else '')
+    includes = (' -I ' + ' -I '.join(include_options) if len(include_options) > 0 else '')
 
     # Unfortunately, there are other options that have -c prefix too.
     # So allowing only those look like C/C++ files.
-    src_files = [f for f in src_files if
-                 re.search('\.cpp$|\.cc$|\.c$|\.cxx$|\.C$|\.cu', f)]
-    Log(f"IvokeNvcc -> src_files = {src_files}")
+    src_files = [f for f in src_files if re.search('\.cpp$|\.cc$|\.c$|\.cxx$|\.C$|\.cu', f)]
     srcs = ' '.join(src_files)
     out = ' -o ' + out_file[0]
 
-    supported_cuda_compute_capabilities = os.environ.get(CUDA_COMPUTE_ENV_VAR, DEFAULT_CUDA_COMPUTE_CAPABILITIES).split(
-        ',')
+    supported_cuda_compute_capabilities = os.environ.get(CUDA_COMPUTE_ENV_VAR, DEFAULT_CUDA_COMPUTE_CAPABILITIES).split(',')
     nvccopts = '-D_FORCE_INLINES '
     for capability in supported_cuda_compute_capabilities:
         capability = capability.replace('.', '')

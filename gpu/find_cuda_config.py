@@ -71,20 +71,20 @@ class ConfigError(Exception):
 def _matches_version(actual_version, required_version):
     """Checks whether some version meets the requirements.
 
-        All elements of the required_version need to be present in the
-        actual_version.
+    All elements of the required_version need to be present in the
+    actual_version.
 
-            required_version  actual_version  result
-            -----------------------------------------
-            1                 1.1             True
-            1.2               1               False
-            1.2               1.3             False
-                              1               True
+        required_version  actual_version  result
+        -----------------------------------------
+        1                 1.1             True
+        1.2               1               False
+        1.2               1.3             False
+                          1               True
 
-        Args:
-          required_version: The version specified by the user.
-          actual_version: The version detected from the CUDA installation.
-        Returns: Whether the actual version matches the required one.
+    Args:
+      required_version: The version specified by the user.
+      actual_version: The version detected from the CUDA installation.
+    Returns: Whether the actual version matches the required one.
     """
     if actual_version is None:
         return False
@@ -136,8 +136,12 @@ def _get_default_cuda_paths(cuda_version):
         cuda_version = "*"
     elif not "." in cuda_version:
         cuda_version = cuda_version + ".*"
-    return ["/usr/local/cuda-%s" % cuda_version, "/usr/local/cuda", "/usr",
-            "/usr/local/cudnn"] + _get_ld_config_paths()
+    return [
+        "/usr/local/cuda-%s" % cuda_version,
+        "/usr/local/cuda",
+        "/usr",
+        "/usr/local/cudnn",
+    ] + _get_ld_config_paths()
 
 
 def _header_paths():
@@ -149,7 +153,7 @@ def _header_paths():
         "include/*-linux-gnu",
         "extras/CUPTI/include",
         "include/cuda/CUPTI",
-        "local/cuda/include"
+        "local/cuda/include",
     ]
 
 
@@ -169,8 +173,9 @@ def _not_found_error(base_paths, relative_paths, filepattern):
     base_paths = "".join(["\n        '%s'" % path for path in sorted(base_paths)])
     relative_paths = "".join(["\n        '%s'" % path for path in relative_paths])
     return ConfigError(
-        "Could not find any %s in any subdirectory:%s\nof:%s\n" %
-        (filepattern, relative_paths, base_paths))
+        "Could not find any %s in any subdirectory:%s\nof:%s\n"
+        % (filepattern, relative_paths, base_paths)
+    )
 
 
 def _find_file(base_paths, relative_paths, filepattern):
@@ -182,12 +187,15 @@ def _find_file(base_paths, relative_paths, filepattern):
 
 def _find_library(base_paths, library_name, required_version):
     """Returns first valid path to the requested library."""
-    filepattern = ".".join(["lib" + library_name, "so"] + required_version.split(".")[:1]) + "*"
+    filepattern = (
+        ".".join(["lib" + library_name, "so"] + required_version.split(".")[:1]) + "*"
+    )
     return _find_file(base_paths, _library_paths(), filepattern)
 
 
-def _find_versioned_file(base_paths, relative_paths, filepattern,
-                         required_version, get_version):
+def _find_versioned_file(
+    base_paths, relative_paths, filepattern, required_version, get_version
+):
     """Returns first valid path to a file that matches the requested version."""
     for path in _cartesian_product(base_paths, relative_paths):
         for file in glob.glob(os.path.join(path, filepattern)):
@@ -195,14 +203,17 @@ def _find_versioned_file(base_paths, relative_paths, filepattern,
             if _matches_version(actual_version, required_version):
                 return file, actual_version
     raise _not_found_error(
-        base_paths, relative_paths,
-        filepattern + " matching version '%s'" % required_version)
+        base_paths,
+        relative_paths,
+        filepattern + " matching version '%s'" % required_version,
+    )
 
 
 def _find_header(base_paths, header_name, required_version, get_version):
     """Returns first valid path to a header that matches the requested version."""
-    return _find_versioned_file(base_paths, _header_paths(), header_name,
-                                required_version, get_version)
+    return _find_versioned_file(
+        base_paths, _header_paths(), header_name, required_version, get_version
+    )
 
 
 def _find_cuda_config(base_paths, required_version):
@@ -212,9 +223,9 @@ def _find_cuda_config(base_paths, required_version):
             return None
         return "%d.%d" % (version // 1000, version % 1000 // 10)
 
-    cuda_header_path, header_version = _find_header(base_paths, "cuda.h",
-                                                    required_version,
-                                                    get_header_version)
+    cuda_header_path, header_version = _find_header(
+        base_paths, "cuda.h", required_version, get_header_version
+    )
     cuda_version = header_version  # x.y, see above.
 
     cuda_library_path = _find_library(base_paths, "cudart", cuda_version)
@@ -228,16 +239,26 @@ def _find_cuda_config(base_paths, required_version):
         return None
 
     nvcc_name = "nvcc"
-    nvcc_path, nvcc_version = _find_versioned_file(base_paths, [
-        "",
-        "bin",
-    ], nvcc_name, cuda_version, get_nvcc_version)
+    nvcc_path, nvcc_version = _find_versioned_file(
+        base_paths,
+        [
+            "",
+            "bin",
+        ],
+        nvcc_name,
+        cuda_version,
+        get_nvcc_version,
+    )
 
-    nvvm_path = _find_file(base_paths, [
-        "nvvm/libdevice",
-        "share/cuda",
-        "lib/nvidia-cuda-toolkit/libdevice",
-    ], "libdevice*.10.bc")
+    nvvm_path = _find_file(
+        base_paths,
+        [
+            "nvvm/libdevice",
+            "share/cuda",
+            "lib/nvidia-cuda-toolkit/libdevice",
+        ],
+        "libdevice*.10.bc",
+    )
 
     cupti_header_path = _find_file(base_paths, _header_paths(), "cupti.h")
     cupti_library_path = _find_library(base_paths, "cupti", required_version)
@@ -252,8 +273,9 @@ def _find_cuda_config(base_paths, required_version):
         os.path.normpath(os.path.join(nvvm_library_dir, "../..")),
     )
     if cuda_toolkit_paths[0] != cuda_toolkit_paths[1]:
-        raise ConfigError("Inconsistent CUDA toolkit path: %s vs %s" %
-                          cuda_toolkit_paths)
+        raise ConfigError(
+            "Inconsistent CUDA toolkit path: %s vs %s" % cuda_toolkit_paths
+        )
 
     return {
         "cuda_version": cuda_version,
@@ -273,19 +295,21 @@ def _find_cublas_config(base_paths, required_version, cuda_version):
         def get_header_version(path):
             version = (
                 _get_header_version(path, name)
-                for name in ("CUBLAS_VER_MAJOR", "CUBLAS_VER_MINOR",
-                             "CUBLAS_VER_PATCH"))
+                for name in ("CUBLAS_VER_MAJOR", "CUBLAS_VER_MINOR", "CUBLAS_VER_PATCH")
+            )
             return ".".join(version)
 
-        header_path, header_version = _find_header(base_paths, "cublas_api.h",
-                                                   required_version,
-                                                   get_header_version)
+        header_path, header_version = _find_header(
+            base_paths, "cublas_api.h", required_version, get_header_version
+        )
         # cuBLAS uses the major version only.
         cublas_version = header_version.split(".")[0]
 
         if not _matches_version(cuda_version, cublas_version):
-            raise ConfigError("cuBLAS version %s does not match CUDA version %s" %
-                              (cublas_version, cuda_version))
+            raise ConfigError(
+                "cuBLAS version %s does not match CUDA version %s"
+                % (cublas_version, cuda_version)
+            )
 
     else:
         # There is no version info available before CUDA 10.1, just find the file.
@@ -305,12 +329,13 @@ def _find_cudnn_config(base_paths, required_version):
     def get_header_version(path):
         version = (
             _get_header_version(path, name)
-            for name in ("CUDNN_MAJOR", "CUDNN_MINOR", "CUDNN_PATCHLEVEL"))
+            for name in ("CUDNN_MAJOR", "CUDNN_MINOR", "CUDNN_PATCHLEVEL")
+        )
         return ".".join(version)
 
-    header_path, header_version = _find_header(base_paths, "cudnn_version.h",
-                                               required_version,
-                                               get_header_version)
+    header_path, header_version = _find_header(
+        base_paths, "cudnn_version.h", required_version, get_header_version
+    )
     cudnn_version = header_version.split(".")[0]
 
     library_path = _find_library(base_paths, "cudnn", cudnn_version)
@@ -346,8 +371,7 @@ def find_cuda_config():
     """Returns a dictionary of CUDA library and header file paths."""
     libraries = [argv.lower() for argv in sys.argv[1:]]
     cuda_version = os.environ.get("TF_CUDA_VERSION", "")
-    base_paths = _list_from_env("TF_CUDA_PATHS",
-                                _get_default_cuda_paths(cuda_version))
+    base_paths = _list_from_env("TF_CUDA_PATHS", _get_default_cuda_paths(cuda_version))
     base_paths = [path for path in base_paths if os.path.exists(path)]
 
     result = {}
@@ -361,8 +385,7 @@ def find_cuda_config():
             # Before CUDA 10.1, cuBLAS was in the same directory as the toolkit.
             cublas_paths = cuda_paths
         cublas_version = os.environ.get("TF_CUBLAS_VERSION", "")
-        result.update(
-            _find_cublas_config(cublas_paths, cublas_version, cuda_version))
+        result.update(_find_cublas_config(cublas_paths, cublas_version, cuda_version))
 
         if "cudnn" in libraries:
             cudnn_paths = _get_legacy_path("CUDNN_INSTALL_PATH", base_paths)

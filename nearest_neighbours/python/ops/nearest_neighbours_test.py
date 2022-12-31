@@ -8,6 +8,7 @@ from tensorflow.python.framework import ops
 
 from nearest_neighbours.python.ops.nearest_neighbours_ops import nearest_neighbours
 
+
 @tf.function
 def py_nearest_neighbour_single_point(
     token_embedding: tf.Tensor, embedding_matrix: tf.Tensor

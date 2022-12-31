@@ -463,8 +463,6 @@ def _find_cuda_lib(
       Returns:
         Returns the path to the library.
       """
-    print(lib)
-    print(version)
     if lib == "cudart" and version == "11.2":
         version = "11.0"
     if lib in ["curand", "cufft"] and version == "11":
@@ -1023,8 +1021,6 @@ def _create_local_cuda_repository(repository_ctx):
             "",
         )),
     )
-    print("nvcc_path")
-    print(nvcc_path)
     cuda_defines["%{compiler_deps}"] = ":crosstool_wrapper_driver_is_not_gcc"
 
     wrapper_defines = {

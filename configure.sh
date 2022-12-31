@@ -77,18 +77,13 @@ while [[ "$TF_NEED_METAL" == "" ]]; do
 done
 
 
-#build --action_env TF_CUDA_VERSION="11"
-#build --action_env TF_CUDNN_VERSION="8"
-#build --action_env CUDNN_INSTALL_PATH="/usr/lib/x86_64-linux-gnu"
-#build --action_env CUDA_TOOLKIT_PATH="/usr/local/cuda"
-
 write_to_bazelrc "build --spawn_strategy=standalone"
 write_to_bazelrc "build --strategy=Genrule=standalone"
 write_to_bazelrc "build -c opt"
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" ${SHARED_LIBRARY_DIR}
 write_action_env_to_bazelrc "TF_HEADER_DIR" ${HEADER_DIR}
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
-write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_METAL}
+write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_CUDA}
 write_action_env_to_bazelrc "TF_NEED_METAL" ${TF_NEED_METAL}
 
 if [[ "$TF_NEED_CUDA" == "1" ]]; then

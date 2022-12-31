@@ -6,10 +6,6 @@ from tensorflow.python.platform import resource_loader
 
 
 
-print("-" * 100)
-import pathlib
-print(f"Current path = {pathlib.Path().resolve()}")
-print("-" * 100)
 
 _backend = load_library.load_op_library(
     resource_loader.get_path_to_datafile("_nearest_neighbours_ops.so")
