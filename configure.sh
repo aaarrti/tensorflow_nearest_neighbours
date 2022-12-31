@@ -1,5 +1,6 @@
+set -e
+
 PLATFORM="$(uname -s | tr 'A-Z' 'a-z')"
-PIP="pip3"
 
 function is_linux() {
   [[ "${PLATFORM}" == "linux" ]]
@@ -20,8 +21,7 @@ function write_action_env_to_bazelrc() {
 # Remove .bazelrc if it already exist
 [ -e .bazelrc ] && rm .bazelrc
 
-
-PROJECT_DIR=$(pwd)
+unset TF_NEED_CUDA
 TF_CFLAGS=$(python3 -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
 TF_LFLAGS="$(python3 -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')"
 
@@ -76,6 +76,12 @@ while [[ "$TF_NEED_METAL" == "" ]]; do
   esac
 done
 
+
+#build --action_env TF_CUDA_VERSION="11"
+#build --action_env TF_CUDNN_VERSION="8"
+#build --action_env CUDNN_INSTALL_PATH="/usr/lib/x86_64-linux-gnu"
+#build --action_env CUDA_TOOLKIT_PATH="/usr/local/cuda"
+
 write_to_bazelrc "build --spawn_strategy=standalone"
 write_to_bazelrc "build --strategy=Genrule=standalone"
 write_to_bazelrc "build -c opt"
@@ -84,12 +90,13 @@ write_action_env_to_bazelrc "TF_HEADER_DIR" ${HEADER_DIR}
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
 write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_METAL}
 write_action_env_to_bazelrc "TF_NEED_METAL" ${TF_NEED_METAL}
-write_action_env_to_bazelrc "PROJECT_DIR" ${PROJECT_DIR}
 
 if [[ "$TF_NEED_CUDA" == "1" ]]; then
   write_to_bazelrc "build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true"
   write_to_bazelrc "build --config=cuda"
+  write_to_bazelrc "test --config=cuda"
+  write_to_bazelrc "build:manylinux2022cuda11 --crosstool_top=//third_party/toolchains/preconfig/ubuntu20.04/gcc9_manylinux-nvcc-cuda11:toolchain"
+  write_to_bazelrc "test:build:manylinux2022cuda11 --crosstool_top=//third_party/toolchains/preconfig/ubuntu20.04/gcc9_manylinux-nvcc-cuda11:toolchain"
+  write_to_bazelrc "build --config=manylinux2022cuda11"
+  write_to_bazelrc "test --config=manylinux2022cuda11"
 fi
-
-
-
