@@ -1,4 +1,4 @@
-"""cc_toolchain_config rule for configuring CUDA toolchains on Linux, Mac, and Windows."""
+"""cc_toolchain_config rule for configuring CUDA toolchains on Linux"""
 
 load(
     "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
@@ -69,49 +69,17 @@ ACTION_NAMES = struct(
 )
 
 def _impl(ctx):
-    if (ctx.attr.cpu == "darwin"):
-        toolchain_identifier = "local_darwin"
-    elif (ctx.attr.cpu == "local"):
-        toolchain_identifier = "local_linux"
-    elif (ctx.attr.cpu == "x64_windows"):
-        toolchain_identifier = "local_windows"
-    else:
+    if ctx.attr.cpu != "local":
         fail("Unreachable")
 
+    toolchain_identifier = "local_linux"
+    target_cpu = "local"
+    target_libc = "local"
+    compiler = "compiler"
     host_system_name = "local"
-
     target_system_name = "local"
-
-    if (ctx.attr.cpu == "darwin"):
-        target_cpu = "darwin"
-    elif (ctx.attr.cpu == "local"):
-        target_cpu = "local"
-    elif (ctx.attr.cpu == "x64_windows"):
-        target_cpu = "x64_windows"
-    else:
-        fail("Unreachable")
-
-    if (ctx.attr.cpu == "local"):
-        target_libc = "local"
-    elif (ctx.attr.cpu == "darwin"):
-        target_libc = "macosx"
-    elif (ctx.attr.cpu == "x64_windows"):
-        target_libc = "msvcrt"
-    else:
-        fail("Unreachable")
-
-    if (ctx.attr.cpu == "darwin" or
-        ctx.attr.cpu == "local"):
-        compiler = "compiler"
-    elif (ctx.attr.cpu == "x64_windows"):
-        compiler = "msvc-cl"
-    else:
-        fail("Unreachable")
-
     abi_version = "local"
-
     abi_libc_version = "local"
-
     cc_target_os = None
 
     builtin_sysroot = ctx.attr.builtin_sysroot
@@ -122,145 +90,10 @@ def _impl(ctx):
         ACTION_NAMES.cpp_link_nodeps_dynamic_library,
     ]
 
-    cpp_link_dynamic_library_action = action_config(
-        action_name = ACTION_NAMES.cpp_link_dynamic_library,
-        implies = [
-            "nologo",
-            "shared_flag",
-            "linkstamps",
-            "output_execpath_flags",
-            "input_param_flags",
-            "user_link_flags",
-            "linker_subsystem_flag",
-            "linker_param_file",
-            "msvc_env",
-            "no_stripping",
-            "has_configured_linker_path",
-            "def_file",
-        ],
-        tools = [tool(path = ctx.attr.msvc_link_path)],
-    )
-
-    cpp_link_nodeps_dynamic_library_action = action_config(
-        action_name = ACTION_NAMES.cpp_link_nodeps_dynamic_library,
-        implies = [
-            "nologo",
-            "shared_flag",
-            "linkstamps",
-            "output_execpath_flags",
-            "input_param_flags",
-            "user_link_flags",
-            "linker_subsystem_flag",
-            "linker_param_file",
-            "msvc_env",
-            "no_stripping",
-            "has_configured_linker_path",
-            "def_file",
-        ],
-        tools = [tool(path = ctx.attr.msvc_link_path)],
-    )
-
-    cpp_link_static_library_action = action_config(
-        action_name = ACTION_NAMES.cpp_link_static_library,
-        implies = [
-            "nologo",
-            "archiver_flags",
-            "input_param_flags",
-            "linker_param_file",
-            "msvc_env",
-        ],
-        tools = [tool(path = ctx.attr.msvc_lib_path)],
-    )
-
-    assemble_action = action_config(
-        action_name = ACTION_NAMES.assemble,
-        implies = [
-            "compiler_input_flags",
-            "compiler_output_flags",
-            "nologo",
-            "msvc_env",
-            "sysroot",
-        ],
-        tools = [tool(path = ctx.attr.msvc_ml_path)],
-    )
-
-    preprocess_assemble_action = action_config(
-        action_name = ACTION_NAMES.preprocess_assemble,
-        implies = [
-            "compiler_input_flags",
-            "compiler_output_flags",
-            "nologo",
-            "msvc_env",
-            "sysroot",
-        ],
-        tools = [tool(path = ctx.attr.msvc_ml_path)],
-    )
-
-    c_compile_action = action_config(
-        action_name = ACTION_NAMES.c_compile,
-        implies = [
-            "compiler_input_flags",
-            "compiler_output_flags",
-            "nologo",
-            "msvc_env",
-            "parse_showincludes",
-            "user_compile_flags",
-            "sysroot",
-            "unfiltered_compile_flags",
-        ],
-        tools = [tool(path = ctx.attr.msvc_cl_path)],
-    )
-
-    cpp_compile_action = action_config(
-        action_name = ACTION_NAMES.cpp_compile,
-        implies = [
-            "compiler_input_flags",
-            "compiler_output_flags",
-            "nologo",
-            "msvc_env",
-            "parse_showincludes",
-            "user_compile_flags",
-            "sysroot",
-            "unfiltered_compile_flags",
-        ],
-        tools = [tool(path = ctx.attr.msvc_cl_path)],
-    )
-
-    cpp_link_executable_action = action_config(
-        action_name = ACTION_NAMES.cpp_link_executable,
-        implies = [
-            "nologo",
-            "linkstamps",
-            "output_execpath_flags",
-            "input_param_flags",
-            "user_link_flags",
-            "linker_subsystem_flag",
-            "linker_param_file",
-            "msvc_env",
-            "no_stripping",
-        ],
-        tools = [tool(path = ctx.attr.msvc_link_path)],
-    )
-
-    if (ctx.attr.cpu == "darwin" or
-        ctx.attr.cpu == "local"):
-        action_configs = []
-    elif (ctx.attr.cpu == "x64_windows"):
-        action_configs = [
-            assemble_action,
-            preprocess_assemble_action,
-            c_compile_action,
-            cpp_compile_action,
-            cpp_link_executable_action,
-            cpp_link_dynamic_library_action,
-            cpp_link_nodeps_dynamic_library_action,
-            cpp_link_static_library_action,
-        ]
-    else:
+    if ctx.attr.cpu != "local":
         fail("Unreachable")
 
-    no_windows_export_all_symbols_feature = feature(name = "no_windows_export_all_symbols")
-
+    action_configs = []
     pic_feature = feature(
         name = "pic",
         enabled = True,
@@ -444,69 +277,10 @@ def _impl(ctx):
                 ),
             ],
         )
-    elif (ctx.attr.cpu == "darwin"):
-        hardening_feature = feature(
-            name = "hardening",
-            flag_sets = [
-                flag_set(
-                    actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                    flag_groups = [
-                        flag_group(
-                            flags = [
-                                "-U_FORTIFY_SOURCE",
-                                "-D_FORTIFY_SOURCE=1",
-                                "-fstack-protector",
-                            ],
-                        ),
-                    ],
-                ),
-                flag_set(
-                    actions = [ACTION_NAMES.cpp_link_executable],
-                    flag_groups = [flag_group(flags = ["-pie"])],
-                ),
-            ],
-        )
-    else:
-        hardening_feature = None
+
+    hardening_feature = None
 
     supports_dynamic_linker_feature = feature(name = "supports_dynamic_linker", enabled = True)
-
-    targets_windows_feature = feature(
-        name = "targets_windows",
-        enabled = True,
-        implies = ["copy_dynamic_libraries_to_binary"],
-    )
-
-    msvc_env_feature = feature(
-        name = "msvc_env",
-        env_sets = [
-            env_set(
-                actions = [
-                    ACTION_NAMES.c_compile,
-                    ACTION_NAMES.cpp_compile,
-                    ACTION_NAMES.cpp_module_compile,
-                    ACTION_NAMES.cpp_module_codegen,
-                    ACTION_NAMES.cpp_header_parsing,
-                    ACTION_NAMES.assemble,
-                    ACTION_NAMES.preprocess_assemble,
-                    ACTION_NAMES.cpp_link_executable,
-                    ACTION_NAMES.cpp_link_dynamic_library,
-                    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
-                    ACTION_NAMES.cpp_link_static_library,
-                ],
-                env_entries = [
-                    env_entry(key = "PATH", value = ctx.attr.msvc_env_path),
-                    env_entry(
-                        key = "INCLUDE",
-                        value = ctx.attr.msvc_env_include,
-                    ),
-                    env_entry(key = "LIB", value = ctx.attr.msvc_env_lib),
-                    env_entry(key = "TMP", value = ctx.attr.msvc_env_tmp),
-                    env_entry(key = "TEMP", value = ctx.attr.msvc_env_tmp),
-                ],
-            ),
-        ],
-    )
 
     linker_subsystem_flag_feature = feature(
         name = "linker_subsystem_flag",
@@ -515,24 +289,6 @@ def _impl(ctx):
                 actions = all_link_actions,
                 flag_groups = [flag_group(flags = ["/SUBSYSTEM:CONSOLE"])],
             ),
-        ],
-    )
-
-    dynamic_link_msvcrt_no_debug_feature = feature(
-        name = "dynamic_link_msvcrt_no_debug",
-        flag_sets = [
-            flag_set(
-                actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                flag_groups = [flag_group(flags = ["/MD"])],
-            ),
-            flag_set(
-                actions = all_link_actions,
-                flag_groups = [flag_group(flags = ["/DEFAULTLIB:msvcrt.lib"])],
-            ),
-        ],
-        requires = [
-            feature_set(features = ["fastbuild"]),
-            feature_set(features = ["opt"]),
         ],
     )
 
@@ -548,21 +304,6 @@ def _impl(ctx):
                 ],
             ),
         ],
-    )
-
-    dynamic_link_msvcrt_debug_feature = feature(
-        name = "dynamic_link_msvcrt_debug",
-        flag_sets = [
-            flag_set(
-                actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                flag_groups = [flag_group(flags = ["/MDd"])],
-            ),
-            flag_set(
-                actions = all_link_actions,
-                flag_groups = [flag_group(flags = ["/DEFAULTLIB:msvcrtd.lib"])],
-            ),
-        ],
-        requires = [feature_set(features = ["dbg"])],
     )
 
     compiler_output_flags_feature = feature(
@@ -643,78 +384,22 @@ def _impl(ctx):
                     ACTION_NAMES.lto_backend,
                     ACTION_NAMES.clif_match,
                 ],
-                flag_groups = [
-                    flag_group(
-                        flags = [
-                            "/DCOMPILER_MSVC",
-                            "/DNOMINMAX",
-                            "/D_WIN32_WINNT=0x0600",
-                            "/D_CRT_SECURE_NO_DEPRECATE",
-                            "/D_CRT_SECURE_NO_WARNINGS",
-                            "/D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS",
-                            "/bigobj",
-                            "/Zm500",
-                            "/J",
-                            "/Gy",
-                            "/GF",
-                            "/EHsc",
-                            "/wd4351",
-                            "/wd4291",
-                            "/wd4250",
-                            "/wd4996",
-                        ],
-                    ),
-                ],
             ),
         ],
     )
 
-    static_link_msvcrt_debug_feature = feature(
-        name = "static_link_msvcrt_debug",
+    if ctx.attr.cpu != "local":
+        dbg_feature = None
+    dbg_feature = feature(
+        name = "dbg",
         flag_sets = [
             flag_set(
                 actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                flag_groups = [flag_group(flags = ["/MTd"])],
-            ),
-            flag_set(
-                actions = all_link_actions,
-                flag_groups = [flag_group(flags = ["/DEFAULTLIB:libcmtd.lib"])],
+                flag_groups = [flag_group(flags = ["-g"])],
             ),
         ],
-        requires = [feature_set(features = ["dbg"])],
+        implies = ["common"],
     )
-
-    static_link_msvcrt_feature = feature(name = "static_link_msvcrt")
-
-    if (ctx.attr.cpu == "darwin" or
-        ctx.attr.cpu == "local"):
-        dbg_feature = feature(
-            name = "dbg",
-            flag_sets = [
-                flag_set(
-                    actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                    flag_groups = [flag_group(flags = ["-g"])],
-                ),
-            ],
-            implies = ["common"],
-        )
-    elif (ctx.attr.cpu == "x64_windows"):
-        dbg_feature = feature(
-            name = "dbg",
-            flag_sets = [
-                flag_set(
-                    actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                    flag_groups = [flag_group(flags = ["/Od", "/Z7", "/DDEBUG"])],
-                ),
-                flag_set(
-                    actions = all_link_actions,
-                    flag_groups = [flag_group(flags = ["/DEBUG:FULL", "/INCREMENTAL:NO"])],
-                ),
-            ],
-            implies = ["generate_pdb_file"],
-        )
-    else:
-        dbg_feature = None
 
     undefined_dynamic_feature = feature(
         name = "undefined-dynamic",
@@ -762,24 +447,6 @@ def _impl(ctx):
         ],
     )
 
-    static_link_msvcrt_no_debug_feature = feature(
-        name = "static_link_msvcrt_no_debug",
-        flag_sets = [
-            flag_set(
-                actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                flag_groups = [flag_group(flags = ["/MT"])],
-            ),
-            flag_set(
-                actions = all_link_actions,
-                flag_groups = [flag_group(flags = ["/DEFAULTLIB:libcmt.lib"])],
-            ),
-        ],
-        requires = [
-            feature_set(features = ["fastbuild"]),
-            feature_set(features = ["opt"]),
-        ],
-    )
-
     supports_interface_shared_libraries_feature = feature(
         name = "supports_interface_shared_libraries",
         enabled = True,
@@ -795,28 +462,7 @@ def _impl(ctx):
         ],
     )
 
-    if (ctx.attr.cpu == "x64_windows"):
-        fastbuild_feature = feature(
-            name = "fastbuild",
-            flag_sets = [
-                flag_set(
-                    actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                    flag_groups = [flag_group(flags = ["/Od", "/Z7", "/DDEBUG"])],
-                ),
-                flag_set(
-                    actions = all_link_actions,
-                    flag_groups = [
-                        flag_group(flags = ["/DEBUG:FASTLINK", "/INCREMENTAL:NO"]),
-                    ],
-                ),
-            ],
-            implies = ["generate_pdb_file"],
-        )
-    elif (ctx.attr.cpu == "darwin" or
-          ctx.attr.cpu == "local"):
-        fastbuild_feature = feature(name = "fastbuild", implies = ["common"])
-    else:
-        fastbuild_feature = None
+    fastbuild_feature = None
 
     user_compile_flags_feature = feature(
         name = "user_compile_flags",
@@ -881,32 +527,6 @@ def _impl(ctx):
         ],
     )
 
-    redirector_feature = feature(
-        name = "redirector",
-        enabled = True,
-        flag_sets = [
-            flag_set(
-                actions = [
-                    ACTION_NAMES.c_compile,
-                    ACTION_NAMES.cpp_compile,
-                    ACTION_NAMES.cpp_module_compile,
-                    ACTION_NAMES.cpp_module_codegen,
-                    ACTION_NAMES.cpp_header_parsing,
-                    ACTION_NAMES.assemble,
-                    ACTION_NAMES.preprocess_assemble,
-                ],
-                flag_groups = [
-                    flag_group(
-                        flags = [
-                            "-B",
-                            "external/local_config_cuda/crosstool/windows/msvc_wrapper_for_nvcc.py",
-                        ],
-                    ),
-                ],
-            ),
-        ],
-    )
-
     linker_bin_path_feature = feature(
         name = "linker-bin-path",
         flag_sets = [
@@ -939,31 +559,6 @@ def _impl(ctx):
                 ),
             ],
             implies = ["common", "disable-assertions"],
-        )
-    elif (ctx.attr.cpu == "darwin"):
-        opt_feature = feature(
-            name = "opt",
-            flag_sets = [
-                flag_set(
-                    actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                    flag_groups = [
-                        flag_group(
-                            flags = ["-g0", "-O2", "-ffunction-sections", "-fdata-sections"],
-                        ),
-                    ],
-                ),
-            ],
-            implies = ["common", "disable-assertions"],
-        )
-    elif (ctx.attr.cpu == "x64_windows"):
-        opt_feature = feature(
-            name = "opt",
-            flag_sets = [
-                flag_set(
-                    actions = [ACTION_NAMES.c_compile, ACTION_NAMES.cpp_compile],
-                    flag_groups = [flag_group(flags = ["/O2", "/DNDEBUG"])],
-                ),
-            ],
         )
     else:
         opt_feature = None
@@ -1011,8 +606,6 @@ def _impl(ctx):
             ),
         ],
     )
-
-    windows_export_all_symbols_feature = feature(name = "windows_export_all_symbols")
 
     frame_pointer_feature = feature(
         name = "frame-pointer",
@@ -1106,17 +699,7 @@ def _impl(ctx):
         ],
     )
 
-    if (ctx.attr.cpu == "darwin"):
-        stdlib_feature = feature(
-            name = "stdlib",
-            flag_sets = [
-                flag_set(
-                    actions = all_link_actions,
-                    flag_groups = [flag_group(flags = ["-lc++"])],
-                ),
-            ],
-        )
-    elif (ctx.attr.cpu == "local"):
+    if ctx.attr.cpu == "local":
         stdlib_feature = feature(
             name = "stdlib",
             flag_sets = [
@@ -1213,7 +796,7 @@ def _impl(ctx):
         ],
     )
 
-    if (ctx.attr.cpu == "local"):
+    if ctx.attr.cpu == "local":
         no_canonical_prefixes_feature = feature(
             name = "no-canonical-prefixes",
             flag_sets = [
@@ -1235,27 +818,9 @@ def _impl(ctx):
                 ),
             ],
         )
-    elif (ctx.attr.cpu == "darwin"):
-        no_canonical_prefixes_feature = feature(
-            name = "no-canonical-prefixes",
-            flag_sets = [
-                flag_set(
-                    actions = [
-                        ACTION_NAMES.c_compile,
-                        ACTION_NAMES.cpp_compile,
-                        ACTION_NAMES.cpp_link_executable,
-                        ACTION_NAMES.cpp_link_dynamic_library,
-                        ACTION_NAMES.cpp_link_nodeps_dynamic_library,
-                    ],
-                    flag_groups = [flag_group(flags = ["-no-canonical-prefixes"])],
-                ),
-            ],
-        )
-    else:
-        no_canonical_prefixes_feature = None
 
+    no_canonical_prefixes_feature = None
     has_configured_linker_path_feature = feature(name = "has_configured_linker_path")
-
     copy_dynamic_libraries_to_binary_feature = feature(name = "copy_dynamic_libraries_to_binary")
 
     user_link_flags_feature = feature(
@@ -1275,11 +840,11 @@ def _impl(ctx):
     )
 
     cpp11_feature = feature(
-        name = "c++11",
+        name = "c++17",
         flag_sets = [
             flag_set(
                 actions = [ACTION_NAMES.cpp_compile],
-                flag_groups = [flag_group(flags = ["-std=c++11"])],
+                flag_groups = [flag_group(flags = ["-std=c++17"])],
             ),
         ],
     )
@@ -1289,7 +854,7 @@ def _impl(ctx):
             name = "common",
             implies = [
                 "stdlib",
-                "c++11",
+                "c++17",
                 "determinism",
                 "alwayslink",
                 "hardening",
@@ -1300,167 +865,51 @@ def _impl(ctx):
                 "linker-bin-path",
             ],
         )
-    elif (ctx.attr.cpu == "darwin"):
-        common_feature = feature(
-            name = "common",
-            implies = [
-                "stdlib",
-                "c++11",
-                "determinism",
-                "hardening",
-                "warnings",
-                "frame-pointer",
-                "no-canonical-prefixes",
-                "linker-bin-path",
-                "undefined-dynamic",
-            ],
-        )
     else:
         common_feature = None
 
-    if (ctx.attr.cpu == "local"):
-        features = [
-            cpp11_feature,
-            stdlib_feature,
-            determinism_feature,
-            alwayslink_feature,
-            pic_feature,
-            hardening_feature,
-            warnings_feature,
-            frame_pointer_feature,
-            build_id_feature,
-            no_canonical_prefixes_feature,
-            disable_assertions_feature,
-            linker_bin_path_feature,
-            common_feature,
-            opt_feature,
-            fastbuild_feature,
-            dbg_feature,
-            supports_dynamic_linker_feature,
-            supports_pic_feature,
-        ]
-        if ctx.attr.cuda_path:
-            features += [cuda_path_feature]
-    elif (ctx.attr.cpu == "darwin"):
-        features = [
-            cpp11_feature,
-            stdlib_feature,
-            determinism_feature,
-            pic_feature,
-            hardening_feature,
-            warnings_feature,
-            frame_pointer_feature,
-            no_canonical_prefixes_feature,
-            disable_assertions_feature,
-            linker_bin_path_feature,
-            undefined_dynamic_feature,
-            common_feature,
-            opt_feature,
-            fastbuild_feature,
-            dbg_feature,
-            supports_dynamic_linker_feature,
-            supports_pic_feature,
-        ]
-    elif (ctx.attr.cpu == "x64_windows"):
-        features = [
-            no_legacy_features_feature,
-            redirector_feature,
-            nologo_feature,
-            has_configured_linker_path_feature,
-            no_stripping_feature,
-            targets_windows_feature,
-            copy_dynamic_libraries_to_binary_feature,
-            default_compile_flags_feature,
-            msvc_env_feature,
-            include_paths_feature,
-            preprocessor_defines_feature,
-            parse_showincludes_feature,
-            generate_pdb_file_feature,
-            shared_flag_feature,
-            linkstamps_feature,
-            output_execpath_flags_feature,
-            archiver_flags_feature,
-            input_param_flags_feature,
-            linker_subsystem_flag_feature,
-            user_link_flags_feature,
-            default_link_flags_feature,
-            linker_param_file_feature,
-            static_link_msvcrt_feature,
-            static_link_msvcrt_no_debug_feature,
-            dynamic_link_msvcrt_no_debug_feature,
-            static_link_msvcrt_debug_feature,
-            dynamic_link_msvcrt_debug_feature,
-            dbg_feature,
-            fastbuild_feature,
-            opt_feature,
-            user_compile_flags_feature,
-            sysroot_feature,
-            unfiltered_compile_flags_feature,
-            compiler_output_flags_feature,
-            compiler_input_flags_feature,
-            def_file_feature,
-            windows_export_all_symbols_feature,
-            no_windows_export_all_symbols_feature,
-            supports_dynamic_linker_feature,
-            supports_interface_shared_libraries_feature,
-        ]
-    else:
+    if ctx.attr.cpu != "local":
         fail("Unreachable")
+    features = [
+        cpp11_feature,
+        stdlib_feature,
+        determinism_feature,
+        alwayslink_feature,
+        pic_feature,
+        hardening_feature,
+        warnings_feature,
+        frame_pointer_feature,
+        build_id_feature,
+        no_canonical_prefixes_feature,
+        disable_assertions_feature,
+        linker_bin_path_feature,
+        common_feature,
+        opt_feature,
+        fastbuild_feature,
+        dbg_feature,
+        supports_dynamic_linker_feature,
+        supports_pic_feature,
+    ]
+    if ctx.attr.cuda_path:
+        features += [cuda_path_feature]
 
     cxx_builtin_include_directories = ctx.attr.builtin_include_directories
 
-    if (ctx.attr.cpu == "x64_windows"):
-        tool_paths = [
-            tool_path(name = "ar", path = ctx.attr.msvc_lib_path),
-            tool_path(name = "ml", path = ctx.attr.msvc_ml_path),
-            tool_path(name = "cpp", path = ctx.attr.msvc_cl_path),
-            tool_path(name = "gcc", path = ctx.attr.msvc_cl_path),
-            tool_path(name = "gcov", path = "wrapper/bin/msvc_nop.bat"),
-            tool_path(name = "ld", path = ctx.attr.msvc_link_path),
-            tool_path(name = "nm", path = "wrapper/bin/msvc_nop.bat"),
-            tool_path(
-                name = "objcopy",
-                path = "wrapper/bin/msvc_nop.bat",
-            ),
-            tool_path(
-                name = "objdump",
-                path = "wrapper/bin/msvc_nop.bat",
-            ),
-            tool_path(
-                name = "strip",
-                path = "wrapper/bin/msvc_nop.bat",
-            ),
-        ]
-    elif (ctx.attr.cpu == "local"):
-        tool_paths = [
-            tool_path(name = "gcc", path = ctx.attr.host_compiler_path),
-            tool_path(name = "ar", path = ctx.attr.host_compiler_prefix + "/ar"),
-            tool_path(name = "compat-ld", path = ctx.attr.host_compiler_prefix + "/ld"),
-            tool_path(name = "cpp", path = ctx.attr.host_compiler_prefix + "/cpp"),
-            tool_path(name = "dwp", path = ctx.attr.host_compiler_prefix + "/dwp"),
-            tool_path(name = "gcov", path = ctx.attr.host_compiler_prefix + "/gcov"),
-            tool_path(name = "ld", path = ctx.attr.host_compiler_prefix + "/ld"),
-            tool_path(name = "nm", path = ctx.attr.host_compiler_prefix + "/nm"),
-            tool_path(name = "objcopy", path = ctx.attr.host_compiler_prefix + "/objcopy"),
-            tool_path(name = "objdump", path = ctx.attr.host_compiler_prefix + "/objdump"),
-            tool_path(name = "strip", path = ctx.attr.host_compiler_prefix + "/strip"),
-        ]
-    elif (ctx.attr.cpu == "darwin"):
-        tool_paths = [
-            tool_path(name = "gcc", path = ctx.attr.host_compiler_path),
-            tool_path(name = "ar", path = ctx.attr.host_compiler_prefix + "/libtool"),
-            tool_path(name = "compat-ld", path = ctx.attr.host_compiler_prefix + "/ld"),
-            tool_path(name = "cpp", path = ctx.attr.host_compiler_prefix + "/cpp"),
-            tool_path(name = "dwp", path = ctx.attr.host_compiler_prefix + "/dwp"),
-            tool_path(name = "gcov", path = ctx.attr.host_compiler_prefix + "/gcov"),
-            tool_path(name = "ld", path = ctx.attr.host_compiler_prefix + "/ld"),
-            tool_path(name = "nm", path = ctx.attr.host_compiler_prefix + "/nm"),
-            tool_path(name = "objcopy", path = ctx.attr.host_compiler_prefix + "/objcopy"),
-            tool_path(name = "objdump", path = ctx.attr.host_compiler_prefix + "/objdump"),
-            tool_path(name = "strip", path = ctx.attr.host_compiler_prefix + "/strip"),
-        ]
-    else:
+    if (ctx.attr.cpu != "local"):
         fail("Unreachable")
+    tool_paths = [
+        tool_path(name = "gcc", path = ctx.attr.host_compiler_path),
+        tool_path(name = "ar", path = ctx.attr.host_compiler_prefix + "/ar"),
+        tool_path(name = "compat-ld", path = ctx.attr.host_compiler_prefix + "/ld"),
+        tool_path(name = "cpp", path = ctx.attr.host_compiler_prefix + "/cpp"),
+        tool_path(name = "dwp", path = ctx.attr.host_compiler_prefix + "/dwp"),
+        tool_path(name = "gcov", path = ctx.attr.host_compiler_prefix + "/gcov"),
+        tool_path(name = "ld", path = ctx.attr.host_compiler_prefix + "/ld"),
+        tool_path(name = "nm", path = ctx.attr.host_compiler_prefix + "/nm"),
+        tool_path(name = "objcopy", path = ctx.attr.host_compiler_prefix + "/objcopy"),
+        tool_path(name = "objdump", path = ctx.attr.host_compiler_prefix + "/objdump"),
+        tool_path(name = "strip", path = ctx.attr.host_compiler_prefix + "/strip"),
+    ]
 
     out = ctx.actions.declare_file(ctx.label.name)
     ctx.actions.write(out, "Fake executable")
@@ -1492,7 +941,7 @@ def _impl(ctx):
 cc_toolchain_config = rule(
     implementation = _impl,
     attrs = {
-        "cpu": attr.string(mandatory = True, values = ["darwin", "local", "x64_windows"]),
+        "cpu": attr.string(mandatory = True, values = ["local"]),
         "builtin_include_directories": attr.string_list(),
         "extra_no_canonical_prefixes_flags": attr.string_list(),
         "host_compiler_path": attr.string(),
@@ -1502,14 +951,6 @@ cc_toolchain_config = rule(
         "linker_bin_path": attr.string(),
         "builtin_sysroot": attr.string(),
         "cuda_path": attr.string(),
-        "msvc_cl_path": attr.string(default = "msvc_not_used"),
-        "msvc_env_include": attr.string(default = "msvc_not_used"),
-        "msvc_env_lib": attr.string(default = "msvc_not_used"),
-        "msvc_env_path": attr.string(default = "msvc_not_used"),
-        "msvc_env_tmp": attr.string(default = "msvc_not_used"),
-        "msvc_lib_path": attr.string(default = "msvc_not_used"),
-        "msvc_link_path": attr.string(default = "msvc_not_used"),
-        "msvc_ml_path": attr.string(default = "msvc_not_used"),
     },
     provides = [CcToolchainConfigInfo],
     executable = True,

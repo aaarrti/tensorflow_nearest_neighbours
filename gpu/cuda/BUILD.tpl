@@ -29,11 +29,6 @@ config_setting(
 )
 
 config_setting(
-    name = "darwin",
-    values = {"cpu": "darwin"},
-)
-
-config_setting(
     name = "freebsd",
     values = {"cpu": "freebsd"},
 )
@@ -165,13 +160,5 @@ cc_library(
     name = "libdevice_root",
     data = [":cuda-nvvm"],
 )
-
-#bzl_library(
-#    name = "build_defs_bzl",
-#    srcs = ["build_defs.bzl"],
-#    deps = [
-#        "@bazel_skylib//lib:selects",
-#    ],
-#)
 
 %{copy_rules}
