@@ -23,7 +23,7 @@ nearest_neighbours(x, em)
 | nvcc       | V11.2.152 | -         | 
 | metal      | -         | 31001.667 | 
 | metallib   | -         | 31001.667 |      
- | bazel      |           | 6.0.0     |
+ | bazel      | 6.0.0     | 6.0.0     |
 
 ### Building from source:
 ```bash

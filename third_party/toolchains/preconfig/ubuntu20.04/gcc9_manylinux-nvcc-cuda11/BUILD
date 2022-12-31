@@ -55,16 +55,9 @@ cc_toolchain(
 cc_toolchain_config(
     name = "cc-compiler-local-config",
     builtin_include_directories = [
-        "/dt7/usr/include/c++/7",
-        "/dt7/usr/include/c++/7/x86_64-pc-linux-gnu",
-        "/dt7/usr/include/c++/7/backward",
-        "/dt7/usr/lib/gcc/x86_64-pc-linux-gnu/7/include",
-        "/dt7/usr/lib/gcc/x86_64-pc-linux-gnu/7/include-fixed",
-        "/dt7/usr/include",
-        "/usr/local/cuda/targets/x86_64-linux/include",
-        "/usr/local/cuda/include",
-        "/usr/local/cuda/extras/CUPTI/include",
+        "/usr/lib/gcc/x86_64-linux-gnu/9/include",
         "/usr/include",
+        "/usr/include/c++/9",
     ],
     builtin_sysroot = "",
     cpu = "local",

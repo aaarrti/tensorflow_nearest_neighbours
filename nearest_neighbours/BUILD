@@ -16,6 +16,7 @@ cc_library(
     deps = [
         "@local_config_cuda//cuda:cudart",
     ],
+    alwayslink = 1,
 )
 
 # CPU

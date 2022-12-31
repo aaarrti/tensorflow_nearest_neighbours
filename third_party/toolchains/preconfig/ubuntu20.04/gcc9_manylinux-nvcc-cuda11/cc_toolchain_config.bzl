@@ -30,12 +30,6 @@ load(
     "LINKSTAMP_COMPILE_ACTION_NAME",
     "LTO_BACKEND_ACTION_NAME",
     "LTO_INDEXING_ACTION_NAME",
-    "OBJCPP_COMPILE_ACTION_NAME",
-    "OBJCPP_EXECUTABLE_ACTION_NAME",
-    "OBJC_ARCHIVE_ACTION_NAME",
-    "OBJC_COMPILE_ACTION_NAME",
-    "OBJC_EXECUTABLE_ACTION_NAME",
-    "OBJC_FULLY_LINK_ACTION_NAME",
     "PREPROCESS_ASSEMBLE_ACTION_NAME",
     "STRIP_ACTION_NAME",
 )
@@ -57,14 +51,7 @@ ACTION_NAMES = struct(
     cpp_link_nodeps_dynamic_library = CPP_LINK_NODEPS_DYNAMIC_LIBRARY_ACTION_NAME,
     cpp_link_static_library = CPP_LINK_STATIC_LIBRARY_ACTION_NAME,
     strip = STRIP_ACTION_NAME,
-    objc_archive = OBJC_ARCHIVE_ACTION_NAME,
-    objc_compile = OBJC_COMPILE_ACTION_NAME,
-    objc_executable = OBJC_EXECUTABLE_ACTION_NAME,
-    objc_fully_link = OBJC_FULLY_LINK_ACTION_NAME,
-    objcpp_compile = OBJCPP_COMPILE_ACTION_NAME,
-    objcpp_executable = OBJCPP_EXECUTABLE_ACTION_NAME,
     clif_match = CLIF_MATCH_ACTION_NAME,
-    objcopy_embed_data = "objcopy_embed_data",
     ld_embed_data = "ld_embed_data",
 )
 
