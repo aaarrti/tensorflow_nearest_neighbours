@@ -49,4 +49,52 @@ jobs:
               write_action_env_to_bazelrc "TF_NEED_METAL" "0"
               
               bazelisk build build_pip_pkg
-              bazelisk run //nearest_neighbours:nearest_neighbours_py_test 
+              bazelisk run //nearest_neighbours:nearest_neighbours_py_test
+  test_macos:
+    runs-on: macos-12
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.8", "3.9", "3.10" ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: bazelbuild/setup-bazelisk@v2
+      - name: Install dependencies
+        shell: bash
+        run: |
+          pip install tensorflow==2.11.0
+      - name: Test
+        shell: bash
+        run: |
+          
+              function write_to_bazelrc() {
+                echo "$1" >>.bazelrc
+              }              
+              function write_action_env_to_bazelrc() {
+                write_to_bazelrc "build --action_env $1=\"$2\""
+              }
+              TF_CFLAGS=$(python3 -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
+              TF_LFLAGS="$(python3 -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')"
+              SHARED_LIBRARY_DIR=${TF_LFLAGS:2}
+              HEADER_DIR=${TF_CFLAGS:2}
+              SHARED_LIBRARY_NAME=$(echo "$TF_LFLAGS" | rev | cut -d":" -f1 | rev)
+          
+              if ! [[ $TF_LFLAGS =~ .*:.* ]]; then
+                SHARED_LIBRARY_NAME="libtensorflow_framework.dylib"
+              fi
+          
+              write_to_bazelrc "build --spawn_strategy=standalone"
+              write_to_bazelrc "build --strategy=Genrule=standalone"
+              write_to_bazelrc "build -c opt"
+              write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" ${SHARED_LIBRARY_DIR}
+              write_action_env_to_bazelrc "TF_HEADER_DIR" ${HEADER_DIR}
+              write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
+              write_action_env_to_bazelrc "TF_NEED_CUDA" "0"
+              write_action_env_to_bazelrc "TF_NEED_METAL" "0"
+              
+              bazelisk build build_pip_pkg
+              bazelisk run //nearest_neighbours:nearest_neighbours_py_test        
