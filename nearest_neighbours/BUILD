@@ -1,7 +1,8 @@
 package(default_visibility = ["//visibility:public"])
 
-load("//metal:metal.bzl", "if_metal_is_enabled")
 load("@local_config_cuda//cuda:build_defs.bzl", "if_cuda", "if_cuda_is_configured")
+load("@local_config_metal//:build_defs.bzl", "if_metal_is_configured")
+load("//metal:metallib_rule.bzl", "metallib")
 
 cc_library(
     name = "cuda",
@@ -25,13 +26,13 @@ cc_binary(
         "cc/kernels/nearest_neighbours.h",
         "cc/kernels/nearest_neighbours_kernel.cc",
         "cc/ops/nearest_neighbours_op.cc",
-    ] + if_metal_is_enabled(["cc/kernels/nearest_neighbours_kernel_metal.cc"]),
+    ] + if_metal_is_configured(["cc/kernels/nearest_neighbours_kernel_metal.cc"]),
     copts = [
         "-pthread",
         "-std=c++17",
         "-fPIC",
         "-O3",
-    ] + if_metal_is_enabled([
+    ] + if_metal_is_configured([
         "-x objective-c++",
         "-framework Foundation",
         "-undefined dynamic_lookup",
@@ -40,9 +41,7 @@ cc_binary(
     deps = [
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",
-    ] + if_metal_is_enabled([
-        ":_nearest_neighbours.metallib",
-    ]) + if_cuda_is_configured([
+    ] + if_cuda_is_configured([
         ":_nearest_neighbours.cu.o",
     ]),
 )
@@ -76,15 +75,10 @@ cc_library(
     alwayslink = 1,
 )
 
-genrule(
+metallib(
     name = "_nearest_neighbours.metallib",
-    srcs = ["cc/kernels/nearest_neighbours.metal"],
-    outs = ["cc/kernels/_nearest_neighbours.metallib"],
-    cmd =
-        """
-    xcrun -sdk macosx metal -c $(locations cc/kernels/nearest_neighbours.metal) -o _nearest_neighbours.air -ffast-math
-    xcrun -sdk macosx metallib _nearest_neighbours.air -o $(locations cc/kernels/_nearest_neighbours.metallib)
-    """,
+    input = "cc/kernels/nearest_neighbours.metal",
+    output = "python/ops/_nearest_neighbours.metallib",
 )
 
 py_library(
@@ -94,7 +88,9 @@ py_library(
     ],
     data = [
         ":python/ops/_nearest_neighbours_ops.so",
-    ],
+    ] + if_metal_is_configured([
+        ":_nearest_neighbours.metallib",
+    ]),
     srcs_version = "PY3",
 )
 

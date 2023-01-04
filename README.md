@@ -1,14 +1,16 @@
 # TensorFlow Nearest Neighbours Op
 
 ## Example usage:
+
 ```python
 import tensorflow as tf
 from nearest_neighbours import nearest_neighbours
+
 tf.debugging.set_log_device_placement(True)
 
-word_embedings_batch = tf.random.uniform(shape=[8, 10, 32])
+word_embeddings_batch = tf.random.uniform(shape=[8, 10, 32])
 embedding_matrix = tf.random.uniform(shape=[500, 32])
-nearest_neighbours(x, em)
+nearest_neighbours(word_embeddings_batch, embedding_matrix)
 ```
 
 ### Tools and version used to build binaries:

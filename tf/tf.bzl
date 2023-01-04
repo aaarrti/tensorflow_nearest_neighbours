@@ -88,9 +88,9 @@ def _symlink_genrule_for_dir(
         tf_pip_dir_rename_pair = []):
     # Check that tf_pip_dir_rename_pair has the right length
     tf_pip_dir_rename_pair_len = len(tf_pip_dir_rename_pair)
-    if tf_pip_dir_rename_pair_len != 0 and tf_pip_dir_rename_pair_len !=2:
-      _fail("The size of argument tf_pip_dir_rename_pair should be either 0 or 2, but %d is given." % tf_pip_dir_rename_pair_len)
-    
+    if tf_pip_dir_rename_pair_len != 0 and tf_pip_dir_rename_pair_len != 2:
+        _fail("The size of argument tf_pip_dir_rename_pair should be either 0 or 2, but %d is given." % tf_pip_dir_rename_pair_len)
+
     if src_dir != None:
         src_dir = _norm_path(src_dir)
         dest_dir = _norm_path(dest_dir)
@@ -98,13 +98,13 @@ def _symlink_genrule_for_dir(
 
         # Create a list with the src_dir stripped to use for outputs.
         if tf_pip_dir_rename_pair_len:
-          dest_files = files.replace(src_dir, "").replace(tf_pip_dir_rename_pair[0], tf_pip_dir_rename_pair[1]).splitlines()
+            dest_files = files.replace(src_dir, "").replace(tf_pip_dir_rename_pair[0], tf_pip_dir_rename_pair[1]).splitlines()
         else:
-          dest_files = files.replace(src_dir, "").splitlines()
+            dest_files = files.replace(src_dir, "").splitlines()
         src_files = files.splitlines()
     command = []
     outs = []
-    
+
     for i in range(len(dest_files)):
         if dest_files[i] != "":
             # If we have only one file to link we do not want to use the dest_dir, as
@@ -130,7 +130,7 @@ def _tf_pip_impl(repository_ctx):
         tf_header_dir,
         "include",
         "tf_header_include",
-        tf_pip_dir_rename_pair = ["tensorflow_core", "tensorflow"]
+        tf_pip_dir_rename_pair = ["tensorflow_core", "tensorflow"],
     )
 
     tf_shared_library_dir = repository_ctx.os.environ[_TF_SHARED_LIBRARY_DIR]

@@ -188,13 +188,13 @@ def _find_file(base_paths, relative_paths, filepattern):
 def _find_library(base_paths, library_name, required_version):
     """Returns first valid path to the requested library."""
     filepattern = (
-        ".".join(["lib" + library_name, "so"] + required_version.split(".")[:1]) + "*"
+            ".".join(["lib" + library_name, "so"] + required_version.split(".")[:1]) + "*"
     )
     return _find_file(base_paths, _library_paths(), filepattern)
 
 
 def _find_versioned_file(
-    base_paths, relative_paths, filepattern, required_version, get_version
+        base_paths, relative_paths, filepattern, required_version, get_version
 ):
     """Returns first valid path to a file that matches the requested version."""
     for path in _cartesian_product(base_paths, relative_paths):
