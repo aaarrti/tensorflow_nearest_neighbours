@@ -1,6 +1,6 @@
-FROM tensorflow/tensorflow:2.11.0-gpu
+FROM tensorflow/tensorflow:devel-gpu
 
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /devcontainer/tf_nearest_neighbours
 
-RUN apt-get install -y clang
+RUN install tensorflow==2.11.0

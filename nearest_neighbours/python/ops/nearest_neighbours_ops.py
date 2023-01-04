@@ -4,8 +4,11 @@ import tensorflow as tf
 from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
 
+
+
+
 _backend = load_library.load_op_library(
-    resource_loader.get_path_to_datafile("_nearest_neighbours_op.so")
+    resource_loader.get_path_to_datafile("_nearest_neighbours_ops.so")
 )
 
 
