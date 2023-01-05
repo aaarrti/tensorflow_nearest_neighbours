@@ -1,11 +1,8 @@
 #import <Metal/Metal.h>
 #include <dispatch/dispatch.h>
-#include <dlfcn.h>
-
 #include <filesystem>
 
 #include "tensorflow/c/kernels.h"
-#include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
 
 @protocol TF_MetalStream
@@ -32,7 +29,6 @@ std::string locate_metal_lib(std::string const &root) {
       std::cout << "Found metallib at: " << dirEntry.path() << std::endl;
       return dirEntry.path().string();
     }
-    // std::cout << dirEntry.path().string() << std::endl;
   }
   return "";
 }
