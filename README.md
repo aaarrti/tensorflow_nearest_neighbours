@@ -34,18 +34,9 @@
 make test
 ```
 - Afterwards, we build a pip package from it:
-  - CPU version
-  ```bash
-  make pip_pkg_cpu
-  ```
-  - Cuda version
-  ```bash
-  make pip_pkg_cuda
-  ```
-  - Metal version
-  ```bash
-  make pip_pkg_metal
-  ```
+```bash
+make pip_pkg
+```
   
 
 - And finally, we can install it: 
