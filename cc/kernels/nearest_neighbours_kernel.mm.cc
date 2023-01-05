@@ -1,16 +1,24 @@
+#include <filesystem>
+#include <dlfcn.h>
 #import <Metal/Metal.h>
 #include <dispatch/dispatch.h>
+#include <dlfcn.h>
+
 #include <filesystem>
 
 #include "tensorflow/c/kernels.h"
+#include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/c/kernels.h"
+
 
 @protocol TF_MetalStream
-- (dispatch_queue_t)queue;
-- (id<MTLCommandBuffer>)currentCommandBuffer;
-- (void)commit;
-- (void)commitAndWait;
+- (dispatch_queue_t) queue;
+- (id <MTLCommandBuffer>) currentCommandBuffer;
+- (void) commit;
+- (void) commitAndWait;
 @end
+
 
 bool ends_with(std::string const &value, std::string const &ending) {
   if (ending.size() > value.size()) return false;
@@ -18,35 +26,33 @@ bool ends_with(std::string const &value, std::string const &ending) {
 }
 
 std::string locate_metal_lib(std::string const &root) {
-  // std::cout << "locate_metal_lib(root=" << root << ")" << std::endl;
-  using recursive_directory_iterator =
-      std::filesystem::recursive_directory_iterator;
+  //std::cout << "locate_metal_lib(root=" << root << ")" << std::endl;
+  using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
   auto installation_root = std::filesystem::path(root);
 
-  for (const std::filesystem::directory_entry &dirEntry :
-       recursive_directory_iterator(installation_root)) {
+  for (const std::filesystem::directory_entry &dirEntry: recursive_directory_iterator(installation_root)) {
     if (ends_with(dirEntry.path().string(), "_nearest_neighbours.metallib")) {
       std::cout << "Found metallib at: " << dirEntry.path() << std::endl;
       return dirEntry.path().string();
     }
-    // std::cout << dirEntry.path().string() << std::endl;
+    //std::cout << dirEntry.path().string() << std::endl;
   }
   return "";
 }
 
+
 // The singleton class for kernel library.
 class KernelLibrarySingleton {
- public:
+public:
   static KernelLibrarySingleton &getInstance() {
     if (sInstance == nullptr) {
       sInstance = new KernelLibrarySingleton();
 
       NSString *bundlePath = [[NSBundle mainBundle] resourcePath];
       NSString *parentPath = [bundlePath stringByDeletingLastPathComponent];
-      auto parent_path_str = [parentPath cStringUsingEncoding:NSISOLatin1StringEncoding];
+      auto parent_path_str = [parentPath cString];
 
-      std::string lib_path =
-          locate_metal_lib(std::string(parent_path_str) + "/lib");
+      std::string lib_path = locate_metal_lib(std::string(parent_path_str) + "/lib");
       if (lib_path == "") {
         lib_path = locate_metal_lib(std::filesystem::current_path().string());
       }
@@ -57,9 +63,8 @@ class KernelLibrarySingleton {
       }
 
       @autoreleasepool {
-        NSString *libraryFile =
-            [NSString stringWithUTF8String:lib_path.c_str()];
-        id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+        NSString *libraryFile = [NSString stringWithUTF8String:lib_path.c_str()];
+        id <MTLDevice> device = MTLCreateSystemDefaultDevice();
 
         NSError *error = nil;
         NSURL *libraryUrl = [NSURL URLWithString:libraryFile];
@@ -74,10 +79,10 @@ class KernelLibrarySingleton {
     return *sInstance;
   }
 
- public:
+public:
   static id<MTLLibrary> library;
 
- private:
+private:
   KernelLibrarySingleton() {}
 
   static KernelLibrarySingleton *sInstance;
@@ -86,8 +91,8 @@ class KernelLibrarySingleton {
 KernelLibrarySingleton *KernelLibrarySingleton::sInstance = nullptr;
 id<MTLLibrary> KernelLibrarySingleton::library = nil;
 
-std::vector<int64_t> getShape(TF_Tensor *tensor) {
-  std::vector<int64_t> shape;
+std::vector<int64_t>getShape(TF_Tensor *tensor) {
+  std::vector<int64_t>shape;
   const int dimensionCount = TF_NumDims(tensor);
   shape.resize(dimensionCount);
   for (int dim = 0; dim < dimensionCount; dim++) {
@@ -96,8 +101,8 @@ std::vector<int64_t> getShape(TF_Tensor *tensor) {
   return shape;
 }
 
-typedef struct NearestNeighboursOp {
-} NearestNeighboursOp;
+
+typedef struct NearestNeighboursOp {} NearestNeighboursOp;
 
 static void *NearestNeighboursOp_Create(TF_OpKernelConstruction *ctx) {
   return static_cast<void *>(new NearestNeighboursOp);
@@ -108,6 +113,7 @@ static void NearestNeighboursOp_Delete(void *kernel) {
 }
 
 static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
+
   TF_Status *status = TF_NewStatus();
 
   TF_Tensor *token_embeddings = nullptr;
@@ -124,9 +130,8 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
   const int num_tokens = embeddings_shape[1];
   const int embedding_dim = embeddings_shape[2];
 
-  TF_Tensor *outputs =
-      TF_AllocateOutput(ctx, 0, dataType, (int64_t *)embeddings_shape.data(),
-                        embeddings_shape.size(), 0, status);
+  TF_Tensor *outputs = TF_AllocateOutput(ctx, 0, dataType, (int64_t *) embeddings_shape.data(), embeddings_shape.size(),
+                                         0, status);
 
   if (TF_GetCode(status) != TF_OK) {
     printf("allocation failed: %s\n", TF_Message(status));
@@ -139,8 +144,8 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
   }
 
   @autoreleasepool {
-    id<TF_MetalStream> metalStream =
-        (id<TF_MetalStream>)(TF_GetStream(ctx, status));
+
+    id<TF_MetalStream> metalStream = (id<TF_MetalStream>) (TF_GetStream(ctx, status));
 
     if (TF_GetCode(status) != TF_OK) {
       printf("no stream was found: %s\n", TF_Message(status));
@@ -162,21 +167,16 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
         id<MTLFunction> function = nil;
 
-        function =
-            [[library newFunctionWithName:@"nearest_neighbours"] autorelease];
+        function = [[library newFunctionWithName:@"nearest_neighbours"] autorelease];
 
-        id<MTLComputePipelineState> pipeline =
-            [device newComputePipelineStateWithFunction:function error:&error];
+        id<MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function error:&error];
         assert(pipeline);
 
-        id<MTLBuffer> inputsBuffer =
-            (id<MTLBuffer>)TF_TensorData(token_embeddings);
-        id<MTLBuffer> embeddingsBuffer =
-            (id<MTLBuffer>)TF_TensorData(embedding_matrix);
-        id<MTLBuffer> outputsBuffer = (id<MTLBuffer>)TF_TensorData(outputs);
+        id<MTLBuffer> inputsBuffer = (id<MTLBuffer>) TF_TensorData(token_embeddings);
+        id<MTLBuffer> embeddingsBuffer = (id<MTLBuffer>) TF_TensorData(embedding_matrix);
+        id<MTLBuffer> outputsBuffer = (id<MTLBuffer>) TF_TensorData(outputs);
 
-        id<MTLComputeCommandEncoder> encoder =
-            commandBuffer.computeCommandEncoder;
+        id<MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
 
         [encoder setComputePipelineState:pipeline];
 
@@ -190,8 +190,7 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
         MTLSize threadgroupsPerGrid = MTLSizeMake(batch_size, num_tokens, 1);
         MTLSize threadsPerThreadgroup = MTLSizeMake(1, 1, 1);
-        [encoder dispatchThreadgroups:threadgroupsPerGrid
-                threadsPerThreadgroup:threadsPerThreadgroup];
+        [encoder dispatchThreadgroups:threadgroupsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
 
         [encoder endEncoding];
         [metalStream commitAndWait];
@@ -205,13 +204,12 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
   TF_DeleteStatus(status);
 }
 
-template <typename T>
+template<typename T>
 void RegisterKernel(const char *device_type) {
   std::string opName("NearestNeighbours");
 
-  auto *builder = TF_NewKernelBuilder(
-      "NearestNeighbours", device_type, &NearestNeighboursOp_Create,
-      &NearestNeighboursOp_Compute, &NearestNeighboursOp_Delete);
+  auto *builder = TF_NewKernelBuilder("NearestNeighbours", device_type, &NearestNeighboursOp_Create,
+                                      &NearestNeighboursOp_Compute, &NearestNeighboursOp_Delete);
 
   TF_Status *status = TF_NewStatus();
   if (TF_OK != TF_GetCode(status))
@@ -222,9 +220,12 @@ void RegisterKernel(const char *device_type) {
   TF_DeleteStatus(status);
 }
 
+
 class InitPlugin {
- public:
-  InitPlugin() { RegisterKernel<float>("GPU"); }
+public:
+  InitPlugin() {
+    RegisterKernel<float>("GPU");
+  }
 };
 
 InitPlugin gInitPlugin;
