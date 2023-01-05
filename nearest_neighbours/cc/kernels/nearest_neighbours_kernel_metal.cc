@@ -1,15 +1,18 @@
 #import <Metal/Metal.h>
 #include <dispatch/dispatch.h>
+#include <dlfcn.h>
+
 #include <filesystem>
 
 #include "tensorflow/c/kernels.h"
+#include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
 
 @protocol TF_MetalStream
-- (dispatch_queue_t) queue;
-- (id<MTLCommandBuffer>) currentCommandBuffer;
-- (void) commit;
-- (void) commitAndWait;
+- (dispatch_queue_t)queue;
+- (id<MTLCommandBuffer>)currentCommandBuffer;
+- (void)commit;
+- (void)commitAndWait;
 @end
 
 bool ends_with(std::string const &value, std::string const &ending) {
@@ -17,8 +20,9 @@ bool ends_with(std::string const &value, std::string const &ending) {
   return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-std::optional<std::string> locate_metal_lib(std::string const &root) {
-  using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
+std::string locate_metal_lib(std::string const &root) {
+  using recursive_directory_iterator =
+      std::filesystem::recursive_directory_iterator;
   auto installation_root = std::filesystem::path(root);
 
   for (const std::filesystem::directory_entry &dirEntry :
@@ -28,7 +32,7 @@ std::optional<std::string> locate_metal_lib(std::string const &root) {
       return dirEntry.path().string();
     }
   }
-  return {};
+  return "";
 }
 
 // The singleton class for kernel library.
@@ -42,18 +46,20 @@ class KernelLibrarySingleton {
       NSString *parentPath = [bundlePath stringByDeletingLastPathComponent];
       auto parent_path_str = [parentPath cStringUsingEncoding:NSISOLatin1StringEncoding];
 
-      auto lib_path = locate_metal_lib(std::string(parent_path_str) + "/lib");
-      if (!lib_path.has_value()) {
+      std::string lib_path =
+          locate_metal_lib(std::string(parent_path_str) + "/lib");
+      if (lib_path == "") {
         lib_path = locate_metal_lib(std::filesystem::current_path().string());
       }
 
-      if (!lib_path.has_value()) {
+      if (lib_path == "") {
         std::cerr << "Failed to find metallib" << std::endl;
         abort();
       }
 
       @autoreleasepool {
-        NSString *libraryFile = [NSString stringWithUTF8String:lib_path.value().c_str()];
+        NSString *libraryFile =
+            [NSString stringWithUTF8String:lib_path.c_str()];
         id<MTLDevice> device = MTLCreateSystemDefaultDevice();
 
         NSError *error = nil;
@@ -120,7 +126,8 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
   const int embedding_dim = embeddings_shape[2];
 
   TF_Tensor *outputs =
-      TF_AllocateOutput(ctx, 0, dataType, (int64_t *)embeddings_shape.data(), embeddings_shape.size(), 0, status);
+      TF_AllocateOutput(ctx, 0, dataType, (int64_t *)embeddings_shape.data(),
+                        embeddings_shape.size(), 0, status);
 
   if (TF_GetCode(status) != TF_OK) {
     printf("allocation failed: %s\n", TF_Message(status));
@@ -133,7 +140,8 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
   }
 
   @autoreleasepool {
-    id<TF_MetalStream> metalStream = (id<TF_MetalStream>)(TF_GetStream(ctx, status));
+    id<TF_MetalStream> metalStream =
+        (id<TF_MetalStream>)(TF_GetStream(ctx, status));
 
     if (TF_GetCode(status) != TF_OK) {
       printf("no stream was found: %s\n", TF_Message(status));
@@ -155,17 +163,21 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
         id<MTLFunction> function = nil;
 
-        function = [[library newFunctionWithName:@"nearest_neighbours"] autorelease];
+        function =
+            [[library newFunctionWithName:@"nearest_neighbours"] autorelease];
 
         id<MTLComputePipelineState> pipeline =
             [device newComputePipelineStateWithFunction:function error:&error];
         assert(pipeline);
 
-        id<MTLBuffer> inputsBuffer = (id<MTLBuffer>) TF_TensorData(token_embeddings);
-        id<MTLBuffer> embeddingsBuffer = (id<MTLBuffer>) TF_TensorData(embedding_matrix);
-        id<MTLBuffer> outputsBuffer = (id<MTLBuffer>) TF_TensorData(outputs);
+        id<MTLBuffer> inputsBuffer =
+            (id<MTLBuffer>)TF_TensorData(token_embeddings);
+        id<MTLBuffer> embeddingsBuffer =
+            (id<MTLBuffer>)TF_TensorData(embedding_matrix);
+        id<MTLBuffer> outputsBuffer = (id<MTLBuffer>)TF_TensorData(outputs);
 
-        id<MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
+        id<MTLComputeCommandEncoder> encoder =
+            commandBuffer.computeCommandEncoder;
 
         [encoder setComputePipelineState:pipeline];
 
@@ -179,7 +191,8 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
         MTLSize threadgroupsPerGrid = MTLSizeMake(batch_size, num_tokens, 1);
         MTLSize threadsPerThreadgroup = MTLSizeMake(1, 1, 1);
-        [encoder dispatchThreadgroups:threadgroupsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
+        [encoder dispatchThreadgroups:threadgroupsPerGrid
+                threadsPerThreadgroup:threadsPerThreadgroup];
 
         [encoder endEncoding];
         [metalStream commitAndWait];
@@ -203,10 +216,10 @@ void RegisterKernel(const char *device_type) {
 
   TF_Status *status = TF_NewStatus();
   if (TF_OK != TF_GetCode(status))
-    std::cerr << " Error while registering " << opName << " kernel";
+    std::cout << " Error while registering " << opName << " kernel";
   TF_RegisterKernelBuilder((opName + "Op").c_str(), builder, status);
   if (TF_OK != TF_GetCode(status))
-    std::cerr << " Error while registering " << opName << " kernel";
+    std::cout << " Error while registering " << opName << " kernel";
   TF_DeleteStatus(status);
 }
 
