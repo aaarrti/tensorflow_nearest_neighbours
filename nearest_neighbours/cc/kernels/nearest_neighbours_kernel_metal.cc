@@ -21,6 +21,7 @@ bool ends_with(std::string const &value, std::string const &ending) {
 }
 
 std::string locate_metal_lib(std::string const &root) {
+  // std::cout << "locate_metal_lib(root=" << root << ")" << std::endl;
   using recursive_directory_iterator =
       std::filesystem::recursive_directory_iterator;
   auto installation_root = std::filesystem::path(root);
@@ -31,6 +32,7 @@ std::string locate_metal_lib(std::string const &root) {
       std::cout << "Found metallib at: " << dirEntry.path() << std::endl;
       return dirEntry.path().string();
     }
+    // std::cout << dirEntry.path().string() << std::endl;
   }
   return "";
 }
