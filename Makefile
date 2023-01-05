@@ -17,7 +17,8 @@ pip_pkg:
 	mkdir artifacts | true
 	cp build/dist/*.whl artifacts/
 
-metal_lib:
+metallib:
+	mkdir build | true
 	xcrun -sdk macosx metal -c cc/kernels/nearest_neighbours.metal -o build/_nearest_neighbours.air -ffast-math
 	xcrun -sdk macosx metallib build/_nearest_neighbours.air -o build/_nearest_neighbours.metallib
 
@@ -31,16 +32,20 @@ CUDA_LIB = build/_nearest_neighbours_kernel.cu.o
 TARGET_FLAG = -o build/_nearest_neighbours_op.so
 
 cpu_kernel:
+	mkdir build | true
 	clang++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) $(TARGET_FLAG)
 
 cuda_lib:
+	mkdir build | true
 	nvcc -I/cc/include -std=c++17 -c $(TF_CFLAGS) $(L_FLAGS) -D CUDA=1 -x cu -Xcompiler -fPIC \
 		--expt-relaxed-constexpr cc/kernels/nearest_neighbours_kernel.cu -o $(CUDA_LIB)
 
 cuda_kernel:
+	mkdir build | true
 	clang++ $(CPU_SRC) $(CUDA_LIB) $(C_FLAGS) $(L_FLAGS) -D CUDA=1 -I/cc/include \
 		-I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart $(TARGET_FLAG)
 
 metal_kernel:
+	mkdir build | true
 	clang++ -x objective-c++ $(C_FLAGS) $(L_FLAGS) cc/ops/nearest_neighbours_op.cc \
 		cc/kernels/nearest_neighbours_kernel.mm.cc $(TARGET_FLAG) -framework Foundation -undefined dynamic_lookup
