@@ -29,6 +29,7 @@ std::string locate_metal_lib(std::string const &root) {
       std::cout << "Found metallib at: " << dirEntry.path() << std::endl;
       return dirEntry.path().string();
     }
+    // std::cout << dirEntry.path().string() << std::endl;
   }
   return "";
 }
