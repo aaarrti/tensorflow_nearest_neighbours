@@ -4,10 +4,15 @@ From: tensorflow/tensorflow:2.11.0-gpu
 %post -c /bin/bash
     apt-get update
     apt-get --yes install python3-venv
+    mkdir /tensorflow_nearest_neighbours
+    cd /tensorflow_nearest_neighbours
 
 %environment
     export LC_ALL=C
     export DEBIAN_FRONTEND=noninteractive
 
 %runscript
-    exec "$@"
+    make cpu_kernel
+    make cuda_lib
+    make cuda_kernel
+    make test
