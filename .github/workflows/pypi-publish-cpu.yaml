@@ -30,7 +30,7 @@ jobs:
           cd .devcontainer
           docker buildx build -t devcontainer --platform=linux/x86_64 .
       - name: Build
-        run:
+        run: |
           cd .devcontainer
           ./run.sh "make cpu_kernel;make cuda_lib; make cuda_kernel"
       - name: Test
