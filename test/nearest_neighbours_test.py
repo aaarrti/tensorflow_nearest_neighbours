@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-
 import tensorflow as tf
-from tensorflow.python.platform import test
-from tensorflow.python.framework import load_library
-from tensorflow.python.platform import resource_loader
-from tensorflow.python.framework import test_util
 from tensorflow.python.framework import ops
+from tensorflow.python.framework import test_util
+from tensorflow.python.platform import test
 
-nearest_neighbours_so = load_library.load_op_library(
-    resource_loader.get_path_to_datafile("_nearest_neighbours_op.so")
-).nearest_neighbours
+from tensorflow_nearest_neighbours import nearest_neighbours
 
 
-@tf.function
+@tf.function(reduce_retracing=True)
 def py_nearest_neighbour_single_point(
     token_embedding: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
@@ -41,13 +36,13 @@ def py_nearest_neighbours_batch(
     )
 
 
-class TestSO(test.TestCase):
+class TestOP(test.TestCase):
     def testNoNoiseAdded(self):
         with self.test_session():
             em = tf.random.uniform(shape=[50, 32])
             x = tf.convert_to_tensor([[em[0], em[0], em[0]], [em[0], em[0], em[0]]])
             expected = x
-            result = nearest_neighbours_so(x, em)
+            result = nearest_neighbours(x, em)
 
         self.assertAllClose(result, expected)
 
@@ -55,7 +50,7 @@ class TestSO(test.TestCase):
         with self.test_session():
             em = tf.random.uniform(shape=[50, 32])
             x = tf.random.uniform(shape=[8, 10, 32])
-            result = nearest_neighbours_so(x, em)
+            result = nearest_neighbours(x, em)
             expected = py_nearest_neighbours_batch(x, em)
 
         self.assertAllClose(result, expected)
@@ -64,7 +59,7 @@ class TestSO(test.TestCase):
         with self.test_session():
             em = tf.random.uniform(shape=[15000, 512])
             x = tf.random.uniform(shape=[8, 10, 512])
-            result = nearest_neighbours_so(x, em)
+            result = nearest_neighbours(x, em)
             expected = py_nearest_neighbours_batch(x, em)
 
         self.assertAllClose(result, expected)
@@ -73,7 +68,7 @@ class TestSO(test.TestCase):
         with self.test_session():
             em = tf.random.uniform(shape=[1500, 512])
             x = tf.random.uniform(shape=[32, 65, 512])
-            result = nearest_neighbours_so(x, em)
+            result = nearest_neighbours(x, em)
             expected = py_nearest_neighbours_batch(x, em)
 
         self.assertAllClose(result, expected)
@@ -84,7 +79,7 @@ class TestSO(test.TestCase):
             with ops.device("/gpu:0"):
                 em = tf.random.uniform(shape=[50, 32])
                 x = tf.random.uniform(shape=[8, 10, 32])
-                result = nearest_neighbours_so(x, em)
+                result = nearest_neighbours(x, em)
                 expected = py_nearest_neighbours_batch(x, em)
 
         self.assertAllClose(result, expected)

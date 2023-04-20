@@ -7,14 +7,13 @@
 namespace tensorflow {
   namespace functor {
 
+      inline int index_2d_flat(int index_0, int index_1, int shape_1) {
+          return index_1 + index_0 * shape_1;
+      }
 
-    __device__  int index_2d_flat_cuda(int index_0, int index_1, int shape_1) {
-      return index_1 + index_0 * shape_1;
-    }
-
-    __device__ int index_3d_flat_cuda(int index_0, int index_1, int index_2, int shape_1, int shape_2) {
-      return index_2 + index_1 * shape_2 + index_0 * shape_2 * shape_1;
-    }
+      inline int index_3d_flat(int index_0, int index_1, int index_2, int shape_1, int shape_2) {
+          return index_2 + index_1 * shape_2 + index_0 * shape_2 * shape_1;
+      }
 
 
     // Define the CUDA kernel.
@@ -34,8 +33,8 @@ namespace tensorflow {
         T dist = 0;
 
         for (int i = 0; i != embedding_dim; i++) {
-          const int index_in_embedding_matrix = index_2d_flat_cuda(word_index, i, embedding_dim);
-          const int index_in_token_embeddings = index_3d_flat_cuda(index_in_batch, index_in_sequence, i, num_tokens,
+          const int index_in_embedding_matrix = index_2d_flat(word_index, i, embedding_dim);
+          const int index_in_token_embeddings = index_3d_flat(index_in_batch, index_in_sequence, i, num_tokens,
                                                                    embedding_dim);
           const T val1 = embedding_matrix[index_in_embedding_matrix];
           const T val2 = token_embeddings[index_in_token_embeddings];
@@ -50,8 +49,8 @@ namespace tensorflow {
       }
 
       for (int i = 0; i != embedding_dim; i++) {
-        const int index_in_output = index_3d_flat_cuda(index_in_batch, index_in_sequence, i, num_tokens, embedding_dim);
-        const int index_in_embedding_matrix = index_2d_flat_cuda(argmin, i, embedding_dim);
+        const int index_in_output = index_3d_flat(index_in_batch, index_in_sequence, i, num_tokens, embedding_dim);
+        const int index_in_embedding_matrix = index_2d_flat(argmin, i, embedding_dim);
         output[index_in_output] = embedding_matrix[index_in_embedding_matrix];
       }
 
@@ -69,7 +68,6 @@ namespace tensorflow {
     };
 
     // Explicitly instantiate functors for the types of OpKernels registered.
-    template
-    struct NearestNeighboursFunctor<GPUDevice, float>;
+    template struct NearestNeighboursFunctor<GPUDevice, float>;
   }
 }

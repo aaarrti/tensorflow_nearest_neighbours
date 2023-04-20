@@ -1,1 +1,1 @@
-recursive-include nearest_neighbours *.so *.metallib
+recursive-include tensorflow_nearest_neighbours *.so *.metallib

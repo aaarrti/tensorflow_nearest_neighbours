@@ -26,7 +26,6 @@ bool ends_with(std::string const &value, std::string const &ending) {
 }
 
 std::string locate_metal_lib(std::string const &root) {
-  //std::cout << "locate_metal_lib(root=" << root << ")" << std::endl;
   using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
   auto installation_root = std::filesystem::path(root);
 
@@ -35,7 +34,6 @@ std::string locate_metal_lib(std::string const &root) {
       std::cout << "Found metallib at: " << dirEntry.path() << std::endl;
       return dirEntry.path().string();
     }
-    //std::cout << dirEntry.path().string() << std::endl;
   }
   return "";
 }
@@ -213,10 +211,10 @@ void RegisterKernel(const char *device_type) {
 
   TF_Status *status = TF_NewStatus();
   if (TF_OK != TF_GetCode(status))
-    std::cout << " Error while registering " << opName << " kernel";
+    std::cerr << " Error while registering " << opName << " kernel" << std::endl;
   TF_RegisterKernelBuilder((opName + "Op").c_str(), builder, status);
   if (TF_OK != TF_GetCode(status))
-    std::cout << " Error while registering " << opName << " kernel";
+    std::cerr << " Error while registering " << opName << " kernel" << std::endl;
   TF_DeleteStatus(status);
 }
 

@@ -192,6 +192,4 @@ cython_debug/
 .fleet
 .DS_Store
 build
-artifacts
-compile_commands.json
-nearest_neighbours
+.vscode

@@ -2,7 +2,8 @@
 
 set -e
 
-PROJECT_DIR=$(realpath "$(pwd)"/..)
+docker build -t devcontainer --platform=linux/x86_64 .
 
-docker build -t devcontainer .
-docker run --name devcontainer --mount type=bind,source="$PROJECT_DIR",target="/devcontainer/tf_nearest_neighbours" --rm -it devcontainer
+PROJECT_DIR=$(realpath "$(pwd)"/..)
+docker run --mount type=bind,source="$PROJECT_DIR",target="/tensorflow_nearest_neighbours" \
+  --name devcontainer --platform=linux/x86_64 --rm -it devcontainer
