@@ -1,0 +1,13 @@
+Bootstrap: docker
+From: tensorflow/tensorflow:2.11.0-gpu
+
+%post -c /bin/bash
+    apt-get update
+    apt-get --yes install python3-venv
+
+%environment
+    export LC_ALL=C
+    export DEBIAN_FRONTEND=noninteractive
+
+%runscript
+    exec "$@"
