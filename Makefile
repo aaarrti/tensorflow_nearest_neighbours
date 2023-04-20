@@ -17,7 +17,7 @@ pip_pkg:
 	mkdir artifacts | true
 	cp build/dist/*.whl artifacts/
 
-metallib:
+metal_lib:
 	mkdir build | true
 	xcrun -sdk macosx metal -c cc/kernels/nearest_neighbours.metal -o build/_nearest_neighbours.air -ffast-math
 	xcrun -sdk macosx metallib build/_nearest_neighbours.air -o build/_nearest_neighbours.metallib
