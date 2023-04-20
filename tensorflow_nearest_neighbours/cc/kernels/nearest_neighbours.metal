@@ -6,13 +6,8 @@ thread int index_2d_flat(const thread int &index_0, const thread int &index_1, c
 }
 
 
-thread int index_3d_flat(
-    const thread int &index_0,
-    const thread int &index_1,
-    thread int &index_2,
-    constant int &shape_1,
-    constant int &shape_2
-) {
+thread int index_3d_flat(const thread int &index_0, const thread int &index_1, thread int &index_2,
+                         constant int &shape_1, constant int &shape_2) {
   return index_2 + index_1 * shape_2 + index_0 * shape_2 * shape_1;
 }
 

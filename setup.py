@@ -5,9 +5,8 @@ from setuptools.command.install import install
 
 __version__ = "0.0.1"
 
-REQUIRED_PACKAGES = []
 
-project_name = "nearest_neighbours"
+project_name = "tensorflow_nearest_neighbours"
 
 
 class InstallPlatlib(install):
@@ -29,12 +28,15 @@ class BinaryDistribution(Distribution):
 setup(
     name=project_name,
     version=__version__,
-    description="Nearest Neighbours for LM evaluation",
+    description="Nearest neighbours word embedding computation.",
     author="Artem Sereda",
     author_email="artem.sereda@campus.tu-berlin.de",
     # Contained modules and scripts.
     packages=find_packages(),
-    install_requires=REQUIRED_PACKAGES,
+    install_requires=[
+        "tensorflow; sys_platform != 'darwin'",
+        "tensorflow_macos; sys_platform == 'darwin'",
+    ],
     # Add in any packaged data.
     include_package_data=True,
     zip_safe=False,
