@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: "3.9"
       - name: Install TensorFlow
-        run: pip install tensorflow
+        run: pip install tensorflow_macos tensorflow_metal
       - name: Build
         run: |
           make cpu_kernel
