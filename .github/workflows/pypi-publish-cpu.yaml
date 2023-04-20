@@ -3,7 +3,7 @@ on: [ workflow_dispatch ]
 
 jobs:
   macos_build:
-    name: PyPi Publish
+    name: Mac OS Build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
@@ -13,22 +13,27 @@ jobs:
           python-version: "3.9"
       - name: Install TensorFlow
         run: pip install tensorflow
-      - name: build
-        run: make cpu_kernel
-      - name: test
+      - name: Build
+        run: |
+          make cpu_kernel
+          make metal_lib
+          make metal_kernel
+      - name: Test
         run: make test
   linux_build:
-    name: PyPi Publish
+    name: Linux Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-      - name: Install TensorFlow
-        run: pip install tensorflow
-      - name: build
-        run: make cpu_kernel
-      - name: test
-        run: make test
+      - name: Build devcontainer
+        run: |
+          cd .devcontainer
+          docker buildx build -t devcontainer --platform=linux/x86_64 .
+      - name: Build
+        run:
+          cd .devcontainer
+          ./run.sh "make cpu_kernel;make cuda_lib; make cuda_kernel"
+      - name: Test
+        run:
+          cd .devcontainer
+          ./run.sh "make test"
