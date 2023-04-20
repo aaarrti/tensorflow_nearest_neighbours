@@ -12,7 +12,8 @@ jobs:
         with:
           python-version: "3.9"
       - name: Install TensorFlow
-        run: pip install tensorflow_macos tensorflow_metal
+        run: |
+          pip install tensorflow_macos tensorflow_metal
       - name: Build
         run: |
           make cpu_kernel
@@ -38,7 +39,9 @@ jobs:
       - name: Build
         run: |
           cd .devcontainer
-          ./run_docker.sh "make cpu_kernel;make cuda_lib; make cuda_kernel"
+          ./run_docker.sh make cpu_kernel
+          ./run_docker.sh make cuda_lib
+          ./run_docker.sh make cuda_kernel
       - name: Test
         run: |
           cd .devcontainer

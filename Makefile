@@ -38,6 +38,6 @@ cuda_kernel:
 		-I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart $(TARGET_FLAG)
 
 metal_kernel:
-	clang++ -x objective-c++ $(C_FLAGS) $(L_FLAGS) tensorflow_nearest_neighbours/cc/ops/nearest_neighbours_op.cc \
+	clang++ -x objective-c++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) \
 		tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.mm.cc $(TARGET_FLAG) \
 		-framework Foundation -undefined dynamic_lookup
