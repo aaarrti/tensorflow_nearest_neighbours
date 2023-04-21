@@ -1,5 +1,5 @@
 name: PyPi Publish
-on: [ workflow_dispatch ]
+on: [ pull_request ]
 
 jobs:
   macos_build:
