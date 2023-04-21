@@ -9,7 +9,7 @@ from tensorflow_nearest_neighbours import nearest_neighbours
 
 @tf.function(reduce_retracing=True)
 def py_nearest_neighbour_single_point(
-        token_embedding: tf.Tensor, embedding_matrix: tf.Tensor
+    token_embedding: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
     dist = tf.linalg.norm(embedding_matrix - token_embedding, axis=-1)
     index = tf.argmin(dist)
@@ -17,7 +17,7 @@ def py_nearest_neighbour_single_point(
 
 
 def py_nearest_neighbours(
-        token_embeddings: tf.Tensor, embedding_matrix: tf.Tensor
+    token_embeddings: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
     return tf.stack(
         [
@@ -28,7 +28,7 @@ def py_nearest_neighbours(
 
 
 def py_nearest_neighbours_batch(
-        token_embeddings_batch: tf.Tensor, embedding_matrix: tf.Tensor
+    token_embeddings_batch: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
     return tf.stack(
         [py_nearest_neighbours(i, embedding_matrix) for i in token_embeddings_batch]

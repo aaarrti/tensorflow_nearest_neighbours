@@ -13,7 +13,7 @@ pip_pkg:
 
 TF_CFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
 TF_LFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))')
-C_FLAGS = ${TF_CFLAGS} -fPIC -std=c++17 -O3
+C_FLAGS = ${TF_CFLAGS} -std=c++17 -O3
 L_FLAGS = -shared ${TF_LFLAGS}
 
 CPU_SRC = tensorflow_nearest_neighbours/cc/ops/nearest_neighbours_op.cc tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.cc

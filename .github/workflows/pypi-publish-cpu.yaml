@@ -2,29 +2,6 @@ name: PyPi Publish
 on: [ workflow_dispatch ]
 
 jobs:
-  macos_build:
-    name: Mac OS Build
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-      - name: Install TensorFlow
-        run: |
-          pip install tensorflow_macos
-      - name: Build
-        run: |
-          make cpu_kernel
-      - name: Test
-        run: make test
-      - name: Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          verbose: true
   linux_build:
     name: Linux Build
     runs-on: ubuntu-latest

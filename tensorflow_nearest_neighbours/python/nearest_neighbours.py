@@ -27,7 +27,9 @@ def nearest_neighbours(
 
         og_rank = tf.rank(token_embeddings)
         if og_rank > 3:
-            raise ValueError(f"token_embeddings can have rank 1, 2, 3, but found: {og_rank}")
+            raise ValueError(
+                f"token_embeddings can have rank 1, 2, 3, but found: {og_rank}"
+            )
 
         result = _backend.nearest_neighbours(token_embeddings, embedding_matrix)
         if og_rank == 3:
