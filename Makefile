@@ -30,13 +30,14 @@ cpu_kernel:
 
 cuda_kernel:
 	nvcc tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.cu --expt-relaxed-constexpr \
-	-I/cc/include -std=c++17 -c $(TF_CFLAGS) $(L_FLAGS) -D CUDA=1 -x cu -Xcompiler -o $(CUDA_LIB)
+ 	-std=c++17 -c $(TF_CFLAGS) $(L_FLAGS) -D CUDA=1 -x cu -Xcompiler -o $(CUDA_LIB)
 	clang++ $(CPU_SRC) $(CUDA_LIB) $(C_FLAGS) $(L_FLAGS) -D CUDA=1 -I/cc/include \
 		-I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart $(TARGET_FLAG)
 
 metal_kernel:
-	xcrun -sdk macosx metal -c tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours.metal \
-		-o tensorflow_nearest_neighbours/_nearest_neighbours.air -ffast-math
+	xcrun -sdk macosx metal -ffast-math  --debug \
+	-c tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours.metal \
+	-o tensorflow_nearest_neighbours/_nearest_neighbours.air
 	xcrun -sdk macosx metallib tensorflow_nearest_neighbours/_nearest_neighbours.air \
 		-o tensorflow_nearest_neighbours/_nearest_neighbours.metallib
 	clang++ -x objective-c++ -framework Foundation -undefined dynamic_lookup $(C_FLAGS) $(L_FLAGS) \
