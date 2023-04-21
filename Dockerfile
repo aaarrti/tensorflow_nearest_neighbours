@@ -8,7 +8,7 @@ RUN apt-get update && \
     apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt install -y python3.8 python3.9 python3.10 \
+    apt install -y python3.8 python3.9 python3.10
 RUN pip install tox
 
 WORKDIR /tensorflow_nearest_neighbours
