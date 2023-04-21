@@ -20,4 +20,5 @@ def nearest_neighbours(
     :param embedding_matrix: Embedding matrix of Language Model with shape [vocab_size, embedding_dimension].
     :return: token_embeddings, shape = [batch_size, None, embedding_dimension], dtype=tf.float32.
     """
+    # TODO assert shapes, add name scope
     return _backend.nearest_neighbours(token_embeddings, embedding_matrix)
