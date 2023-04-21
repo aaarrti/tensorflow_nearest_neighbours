@@ -13,4 +13,4 @@ COPY MANIFEST.in .
 COPY Makefile .
 COPY linux_build.sh .
 
-ENTRYPOINT ["bin/sh", "linux_build.sh"]
+ENTRYPOINT ["linux_build.sh"]
