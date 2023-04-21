@@ -6,11 +6,11 @@ RUN apt update && apt install -y make clang
 
 WORKDIR /tensorflow_nearest_neighbours
 
-COPY tensorflow_nearest_neighbours .
-COPY setup.py .
-COPY README.md .
-COPY MANIFEST.in .
-COPY Makefile .
-COPY linux_build.sh .
+ADD tensorflow_nearest_neighbours .
+ADD setup.py .
+ADD README.md .
+ADD MANIFEST.in .
+ADD Makefile .
+ADD linux_build.sh .
 
 ENTRYPOINT ["linux_build.sh"]
