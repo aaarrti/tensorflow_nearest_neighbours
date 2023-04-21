@@ -6,13 +6,8 @@ clean:
 	rm -rf tensorflow_nearest_neighbours/*.metallib
 	rm -rf tensorflow_nearest_neighbours/*.air
 	rm -rf build
-
-test: pip_pkg
-	python -m pip install dist/*.whl --force-reinstall --no-deps
-	python -m unittest test/nearest_neighbours_test.py
-
-pip_pkg:
-	python3 setup.py bdist_wheel
+	rm -rf tensorflow_nearest_neighbours.egg-info
+	rm -rf dist/*
 
 
 TF_CFLAGS=$(shell python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))')
@@ -40,6 +35,7 @@ metal_kernel:
 	-o tensorflow_nearest_neighbours/_nearest_neighbours.air
 	xcrun -sdk macosx metallib tensorflow_nearest_neighbours/_nearest_neighbours.air \
 		-o tensorflow_nearest_neighbours/_nearest_neighbours.metallib
-	clang++ -x objective-c++ -framework Foundation -undefined dynamic_lookup $(C_FLAGS) $(L_FLAGS) \
-	tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.mm.cc -o $(METAL_LIB)
-	clang++ $(CPU_SRC) $(METAL_LIB) $(C_FLAGS) $(L_FLAGS) $(TARGET_FLAG)
+	clang++ -x objective-c++ $(CPU_SRC) \
+	tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.mm.cc \
+	-framework Foundation -framework Metal -undefined dynamic_lookup $(C_FLAGS) $(L_FLAGS) \
+	$(TARGET_FLAG)
