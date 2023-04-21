@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import tensorflow as tf
-from tensorflow.python.framework import ops
 from tensorflow.python.framework import test_util
 from tensorflow.python.platform import test
 
@@ -10,7 +9,7 @@ from tensorflow_nearest_neighbours import nearest_neighbours
 
 @tf.function(reduce_retracing=True)
 def py_nearest_neighbour_single_point(
-    token_embedding: tf.Tensor, embedding_matrix: tf.Tensor
+        token_embedding: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
     dist = tf.linalg.norm(embedding_matrix - token_embedding, axis=-1)
     index = tf.argmin(dist)
@@ -18,7 +17,7 @@ def py_nearest_neighbour_single_point(
 
 
 def py_nearest_neighbours(
-    token_embeddings: tf.Tensor, embedding_matrix: tf.Tensor
+        token_embeddings: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
     return tf.stack(
         [
@@ -29,7 +28,7 @@ def py_nearest_neighbours(
 
 
 def py_nearest_neighbours_batch(
-    token_embeddings_batch: tf.Tensor, embedding_matrix: tf.Tensor
+        token_embeddings_batch: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
     return tf.stack(
         [py_nearest_neighbours(i, embedding_matrix) for i in token_embeddings_batch]
@@ -48,10 +47,11 @@ class TestOP(test.TestCase):
 
     def testSmallEM(self):
         with self.session():
-            em = tf.random.uniform(shape=[50, 32])
-            x = tf.random.uniform(shape=[8, 10, 32])
-            result = nearest_neighbours(x, em)
-            expected = py_nearest_neighbours_batch(x, em)
+            with test_util.device(False):
+                em = tf.random.uniform(shape=[50, 32])
+                x = tf.random.uniform(shape=[8, 10, 32])
+                result = nearest_neighbours(x, em)
+                expected = py_nearest_neighbours_batch(x, em)
 
         self.assertAllClose(result, expected)
 
@@ -76,7 +76,7 @@ class TestOP(test.TestCase):
     @test_util.run_gpu_only
     def test_on_gpu(self):
         with self.session():
-            with ops.device("/gpu:0"):
+            with test_util.force_gpu():
                 em = tf.random.uniform(shape=[50, 32])
                 x = tf.random.uniform(shape=[8, 10, 32])
                 result = nearest_neighbours(x, em)
