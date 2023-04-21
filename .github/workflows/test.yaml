@@ -8,10 +8,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build Container
-        run: |
-          docker buildx build -t devcontainer --platform=linux/amd64 .
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: false
+          tags: devcontainer
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Build Kernel
         run: |
           docker run \
             --mount type=bind,source="$(realpath "$(pwd)")",target="/tensorflow_nearest_neighbours" \
-            --platform=linux/amd64 --rm devcontainer tox run
+            --rm devcontainer tox run
