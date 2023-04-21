@@ -38,13 +38,13 @@ jobs:
       - name: Build
         run: |
           cd .devcontainer
-          ./run_docker.sh make cpu_kernel
-          ./run_docker.sh make cuda_lib
-          ./run_docker.sh make cuda_kernel
+          ./run.sh make cpu_kernel
+          ./run.sh make cuda_lib
+          ./run.sh make cuda_kernel
       - name: Test
         run: |
           cd .devcontainer
-          ./run_docker.sh "make test"
+          ./run.sh make test
       - name: Publish to PyPi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
