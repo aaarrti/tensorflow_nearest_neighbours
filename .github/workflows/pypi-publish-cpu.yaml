@@ -16,7 +16,7 @@ jobs:
           pip install tensorflow_macos
       - name: Build
         run: |
-          make metal_kernel
+          make cpu_kernel
       - name: Test
         run: make test
       - name: Publish to PyPi
