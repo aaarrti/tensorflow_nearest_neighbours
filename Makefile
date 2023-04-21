@@ -2,6 +2,10 @@
 
 clean:
 	rm -rf tensorflow_nearest_neighbours/*.so
+	rm -rf tensorflow_nearest_neighbours/*.o
+	rm -rf tensorflow_nearest_neighbours/*.metallib
+	rm -rf tensorflow_nearest_neighbours/*.air
+	rm -rf build
 
 test: pip_pkg
 	python -m pip install dist/*.whl --force-reinstall --no-deps

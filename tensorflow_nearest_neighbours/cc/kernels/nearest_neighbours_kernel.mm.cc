@@ -222,7 +222,10 @@ void RegisterKernel(const char *device_type) {
 class InitPlugin {
 public:
   InitPlugin() {
-    RegisterKernel<float>("GPU");
+    id <MTLDevice> device = MTLCreateSystemDefaultDevice();
+    if (device) {
+      RegisterKernel<float>("GPU");
+    }
   }
 };
 
