@@ -41,7 +41,7 @@ namespace tensorflow {
         T dist = 0;
 
         for (int i = 0; i != embedding_dim; i++) {
-          const int index_in_embedding_matrix = ::index_2d_flat(word_index, i, embedding_dim);
+          const int index_in_embedding_matrix = index_2d_flat(word_index, i, embedding_dim);
           const int index_in_token_embeddings = index_3d_flat(index_in_batch,
                                                               index_in_sequence,
                                                               i,

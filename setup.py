@@ -2,9 +2,9 @@ from setuptools import find_packages
 from setuptools import setup
 from setuptools.dist import Distribution
 from setuptools.command.install import install
+from pathlib import Path
 
-__version__ = "0.0.1"
-
+__version__ = "0.0.4"
 
 project_name = "tensorflow_nearest_neighbours"
 
@@ -31,12 +31,13 @@ setup(
     description="Nearest neighbours word embedding computation.",
     author="Artem Sereda",
     author_email="artem.sereda@campus.tu-berlin.de",
+    long_description=Path("README.md").read_text(encoding="utf-8"),
+    long_description_content_type="text/markdown",
     # Contained modules and scripts.
     packages=find_packages(),
     install_requires=[
         "tensorflow; sys_platform != 'darwin'",
         "tensorflow_macos; sys_platform == 'darwin'",
-        "tensorflow_metal; sys_platform == 'darwin'",
     ],
     # Add in any packaged data.
     include_package_data=True,
@@ -50,6 +51,6 @@ setup(
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    keywords="tensorflow custom op machine learning",
+    keywords=["tensorflow", "custom op"],
     python_requires=">=3.8",
 )

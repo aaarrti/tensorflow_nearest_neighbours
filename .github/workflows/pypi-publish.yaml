@@ -2,46 +2,19 @@ name: PyPi Publish
 on: [ workflow_dispatch ]
 
 jobs:
-  macos_build:
-    name: Mac OS Build
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-      - name: Install TensorFlow
-        run: |
-          pip install tensorflow_macos
-      - name: Build
-        run: |
-          make _kernel
-      - name: Test
-        run: make test
-      - name: Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          verbose: true
   linux_build:
     name: Linux Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Build devcontainer
+      - name: Build Container
         run: |
-          cd .devcontainer
-          docker buildx build -t devcontainer --platform=linux/x86_64 .
-      - name: Build
+          docker buildx build -t devcontainer --platform=linux/amd64 .
+      - name: Build Kernel
         run: |
-          cd .devcontainer
-          ./run.sh make cuda_kernel
-      - name: Test
-        run: |
-          cd .devcontainer
-          ./run.sh make test
+          docker run --platform=linux/amd64 \
+            --mount type=bind,source="$(realpath "$(pwd)")",target="/tensorflow_nearest_neighbours" \
+            --rm devcontainer tox run
       - name: Publish to PyPi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
