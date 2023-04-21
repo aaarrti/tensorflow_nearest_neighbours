@@ -7,9 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Build container
+      - name: Build Container
         run: |
           docker buildx build -t container --platform=linux/x86_64 .
-      - name: Test Build kernel
+      - name: Build Kernel
         run: |
-          docker run container
+          ./run.sh make cuda_kernel
+      - name: Test
+        run: |
+          ./run.sh python << EOF
+            setup.py bdbist_wheel
+            python -m pip install dist/*.whl
+            python -m unittest test/nearest_neighbours_test.py
+          EOF

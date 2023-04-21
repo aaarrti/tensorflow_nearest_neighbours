@@ -24,7 +24,8 @@ cpu_kernel:
 	clang++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) $(TARGET_FLAG)
 
 cuda_kernel:
-	nvcc tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.cu --expt-relaxed-constexpr -std=c++17 -c $(TF_CFLAGS) $(L_FLAGS) -D CUDA=1 -x cu -Xcompiler -o $(CUDA_LIB)
+	nvcc -I/cc/include -std=c++17 -D CUDA=1 -x cu -Xcompiler -fPIC --expt-relaxed-constexpr -c $(TF_CFLAGS) $(L_FLAGS) \
+            tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.cu -o $(CUDA_LIB)
 	clang++ $(CPU_SRC) $(CUDA_LIB) $(C_FLAGS) $(L_FLAGS) -D CUDA=1 -I/cc/include -I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart $(TARGET_FLAG)
 
 metal_kernel:
