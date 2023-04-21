@@ -4,8 +4,8 @@ clean:
 	rm -rf tensorflow_nearest_neighbours/*.so
 
 test: pip_pkg
-	python -m pip install dist/*
-	python -m unittest
+	python -m pip install dist/*.whl --force-reinstall --no-deps
+	python -m unittest test/nearest_neighbours_test.py
 
 pip_pkg:
 	python3 setup.py bdist_wheel
@@ -38,6 +38,5 @@ cuda_kernel:
 		-I/usr/local/cuda/targets/x86_64-linux/include -L/usr/local/cuda/targets/x86_64-linux/lib -lcudart $(TARGET_FLAG)
 
 metal_kernel:
-	clang++ -x objective-c++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) \
-		tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.mm.cc $(TARGET_FLAG) \
-		-framework Foundation -undefined dynamic_lookup
+	clang++ -x objective-c++ $(C_FLAGS) $(L_FLAGS) $(CPU_SRC) tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.mm.cc \
+	$(TARGET_FLAG) -framework Foundation -undefined dynamic_lookup

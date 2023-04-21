@@ -9,19 +9,12 @@
 
 namespace tensorflow {
 
-  using thread::ThreadPool;
-
   typedef Eigen::ThreadPoolDevice CPUDevice;
   typedef Eigen::GpuDevice GPUDevice;
 
   namespace functor {
 
     namespace {
-
-      template<typename T>
-      using EigenMatrix = const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-      template<typename T>
-      using EigenVector = const Eigen::Vector<T, Eigen::Dynamic>;
 
       inline const auto index_2d_flat(const int index_0, const int index_1, const int shape_1) {
         return index_1 + index_0 * shape_1;
@@ -35,13 +28,12 @@ namespace tensorflow {
         return index_2 + index_1 * shape_2 + index_0 * shape_2 * shape_1;
       }
 
-      template<typename T>
-      inline auto to_eigen_matrix(const T *matrix, const paramsType params) {
-        return Eigen::Map<EigenMatrix<T>>(matrix, params.vocab_size, params.embedding_dim);
-      }
 
       template<typename T>
-      const auto nearest_neighbour_index(int vocab_size, EigenVector<T> embedding, EigenMatrix<T> embedding_matrix) {
+      const auto nearest_neighbour_index(int vocab_size,
+                                         const Eigen::Vector <T, Eigen::Dynamic> embedding,
+                                         const Eigen::Matrix <T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> embedding_matrix
+      ) {
         auto distances = std::vector<T>(vocab_size);
         const auto embedding_row_major = embedding.transpose();
 
@@ -62,24 +54,27 @@ namespace tensorflow {
 
     template<typename T>
     struct NearestNeighboursFunctor<CPUDevice, T> {
-      void operator()(const CPUDevice &device, const paramsType params, const T *token_embeddings,
-                      const T *embedding_matrix, T *output
+      void operator()(const CPUDevice &device,
+                      const ParamsType params,
+                      const T *token_embeddings,
+                      const T *embedding_matrix,
+                      T *output
       ) {
 
         // Convert to Eigen::Matrix for computation
-        const auto eigen_embedding_matrix = to_eigen_matrix<T>(embedding_matrix, params);
+        const auto eigen_embedding_matrix = Eigen::Map<
+            const Eigen::Matrix <T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+        >(embedding_matrix, params.vocab_size, params.embedding_dim);
 
         for (auto batch_index = 0; batch_index != params.batch_size; batch_index++) {
-          const auto token_embeddings_start = token_embeddings + index_3d_flat(batch_index,
-                                                                               0,
-                                                                               0,
-                                                                               params.num_tokens,
-                                                                               params.embedding_dim
+          const auto sequence = Eigen::Map<
+              const Eigen::Matrix <T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+          >(token_embeddings + index_3d_flat(batch_index, 0, 0, params.num_tokens, params.embedding_dim),
+            params.vocab_size, params.embedding_dim
           );
-          const auto sequence = to_eigen_matrix<T>(token_embeddings_start, params);
 
           for (auto token_index = 0; token_index != params.num_tokens; token_index++) {
-            auto distances = std::vector<const T>(params.vocab_size);
+            auto distances = std::vector<T>(params.vocab_size);
 
             const auto embedding = sequence.row(token_index);
 
@@ -119,10 +114,10 @@ namespace tensorflow {
         // Create output
         tensorflow::Tensor *output_tensor = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, token_embeddings->shape(), &output_tensor));
-        const struct paramsType params = {static_cast<int>(token_embeddings->dim_size(0)),
-                                          static_cast<int>(embedding_matrix->dim_size(0)),
-                                          static_cast<int>(token_embeddings->dim_size(1)),
-                                          static_cast<int>(token_embeddings->dim_size(2))
+        const ParamsType params = {static_cast<int>(token_embeddings->dim_size(0)),
+                                   static_cast<int>(token_embeddings->dim_size(1)),
+                                   static_cast<int>(embedding_matrix->dim_size(0)),
+                                   static_cast<int>(token_embeddings->dim_size(2))
         };
 
         NearestNeighboursFunctor<Device, T>()(context->eigen_device<Device>(),

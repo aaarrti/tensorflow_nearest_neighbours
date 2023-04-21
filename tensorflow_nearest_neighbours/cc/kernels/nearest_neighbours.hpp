@@ -18,13 +18,16 @@ namespace tensorflow {
       const int embedding_dim;
     };
 
-    typedef struct paramsType paramsType;
+    typedef struct paramsType ParamsType;
 
     template<typename Device, typename T>
     struct NearestNeighboursFunctor {
       void
-      operator()(const Device &d, const paramsType paramsType, const T *token_embeddings,
-                 const T *embedding_matrix, T *output);
+      operator()(const Device &d,
+                 const paramsType ParamsType,
+                 const T *token_embeddings,
+                 const T *embedding_matrix,
+                 T *output);
     };
   }
 }

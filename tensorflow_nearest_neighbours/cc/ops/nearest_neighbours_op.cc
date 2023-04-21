@@ -13,9 +13,11 @@ REGISTER_OP("NearestNeighbours")
                       TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 3, &token_embeddings_shape_handle));
                       TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 2, &embedding_matrix_shape_handle));
 
-                      c->set_output(0, c->MakeShape(
-                          {c->Dim(token_embeddings_shape_handle, 0), c->Dim(token_embeddings_shape_handle, 1),
-                           c->Dim(token_embeddings_shape_handle, 2)}));
+                      c->set_output(0,
+                                    c->MakeShape({c->Dim(token_embeddings_shape_handle, 0),
+                                                  c->Dim(token_embeddings_shape_handle, 1),
+                                                  c->Dim(token_embeddings_shape_handle, 2)
+                                    }));
                       return OkStatus();
                     }
         );
