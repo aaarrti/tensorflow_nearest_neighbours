@@ -12,11 +12,4 @@ jobs:
           docker buildx build -t devcontainer --platform=linux/x86_64 .
       - name: Build Kernel
         run: |
-          ./run.sh make cuda_kernel
-      - name: Test
-        run: |
-          ./run.sh python << EOF
-            setup.py bdbist_wheel
-            python -m pip install dist/*.whl
-            python -m unittest test/nearest_neighbours_test.py
-          EOF
+          ./run.sh tox run
