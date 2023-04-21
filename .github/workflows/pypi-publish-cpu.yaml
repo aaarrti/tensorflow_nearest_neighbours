@@ -16,7 +16,6 @@ jobs:
           pip install tensorflow_macos
       - name: Build
         run: |
-          make metal_lib
           make metal_kernel
       - name: Test
         run: make test
@@ -38,8 +37,6 @@ jobs:
       - name: Build
         run: |
           cd .devcontainer
-          ./run.sh make cpu_kernel
-          ./run.sh make cuda_lib
           ./run.sh make cuda_kernel
       - name: Test
         run: |
