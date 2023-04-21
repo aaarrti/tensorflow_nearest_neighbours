@@ -36,7 +36,6 @@ setup(
     install_requires=[
         "tensorflow; sys_platform != 'darwin'",
         "tensorflow_macos; sys_platform == 'darwin'",
-        "tensorflow_metal; sys_platform == 'darwin'",
     ],
     # Add in any packaged data.
     include_package_data=True,
