@@ -20,4 +20,21 @@ def nearest_neighbours(
     :param embedding_matrix: Embedding matrix of Language Model with shape [vocab_size, embedding_dimension].
     :return: token_embeddings, shape = [batch_size, None, embedding_dimension], dtype=tf.float32.
     """
-    return _backend.nearest_neighbours(token_embeddings, embedding_matrix)
+    with tf.name_scope("nearest_neighbours"):
+        em_rank = tf.rank(embedding_matrix)
+        if em_rank != 2:
+            raise ValueError(f"embedding_matrix must have rank 2, but found {em_rank}")
+
+        og_rank = tf.rank(token_embeddings)
+        if og_rank > 3:
+            raise ValueError(
+                f"token_embeddings can have rank 1, 2, 3, but found: {og_rank}"
+            )
+
+        result = _backend.nearest_neighbours(token_embeddings, embedding_matrix)
+        if og_rank == 3:
+            return result
+        if og_rank == 2:
+            return result[0]
+        if og_rank == 1:
+            return result[0, 0]

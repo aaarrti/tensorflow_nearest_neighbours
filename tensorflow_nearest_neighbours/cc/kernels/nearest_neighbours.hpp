@@ -11,11 +11,23 @@ namespace tensorflow {
 
   namespace functor {
 
+    struct paramsType {
+      const int batch_size;
+      const int num_tokens;
+      const int vocab_size;
+      const int embedding_dim;
+    };
+
+    typedef struct paramsType ParamsType;
 
     template<typename Device, typename T>
     struct NearestNeighboursFunctor {
-      void operator()(const Device &d, int batch_size, int num_tokens, int vocab_size, int embedding_dim,
-          const T *token_embeddings, const T *embedding_matrix, T *output);
+      void
+      operator()(const Device &d,
+                 const paramsType ParamsType,
+                 const T *token_embeddings,
+                 const T *embedding_matrix,
+                 T *output);
     };
   }
 }

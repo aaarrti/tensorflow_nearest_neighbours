@@ -1,6 +1,7 @@
 FROM tensorflow/tensorflow:2.11.0-gpu
 
 ENV DEBIAN_FRONTEND=noninteractive
-WORKDIR /tensorflow_nearest_neighbours
+# Install make, clang
+RUN apt update && apt install -y make clang
 
-RUN apt-get install -y clang
+WORKDIR /tensorflow_nearest_neighbours
