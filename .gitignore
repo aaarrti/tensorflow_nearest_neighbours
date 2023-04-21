@@ -195,3 +195,4 @@ build
 .vscode
 *.air
 *.metallib
+*.tmp
