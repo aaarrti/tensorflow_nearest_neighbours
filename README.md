@@ -12,3 +12,8 @@ EM = tf.random.uniform(shape=[500, 32])
 result = nearest_neighbours(x, EM)
 print(result.shape)
 ```
+
+#### Instalation
+```shell
+pip install tensorflow_nearest_neighbours
+```
