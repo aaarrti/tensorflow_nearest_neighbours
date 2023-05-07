@@ -6,6 +6,8 @@ from tensorflow.python.platform import test
 
 from tensorflow_nearest_neighbours import nearest_neighbours, nearest_neighbours_indexes
 
+tf.debugging.set_log_device_placement(True)
+
 
 def py_nearest_neighbours(embeddings_batch, embedding_matrix):
     def token_fn(token_embedding):
