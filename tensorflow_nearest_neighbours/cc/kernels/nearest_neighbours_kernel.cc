@@ -7,8 +7,6 @@
 
 namespace tensorflow {
 
-
-
   namespace functor {
 
     namespace {
@@ -476,18 +474,22 @@ namespace tensorflow {
     };
 
 
-    REGISTER_KERNEL_BUILDER(Name("NearestNeighboursIndexes").Device("CPU"),
-                            NearestNeighboursIndexesOp<CPUDevice, float>);
+    REGISTER_KERNEL_BUILDER(Name("NearestNeighboursIndexes").Device("CPU"), NearestNeighboursIndexesOp<CPUDevice, float>);
     REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("CPU"), NearestNeighboursOp<CPUDevice, float>);
 
 
 #ifdef CUDA
-#define REGISTER_GPU()                                                         \
-  extern template struct NearestNeighboursFunctor<GPUDevice, float>;           \
-  REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"),             \
-                          NearestNeighboursOp<GPUDevice, float>);
-    REGISTER_GPU()
-#endif
+    extern template struct NearestNeighboursFunctor<1, GPUDevice, float>;
+    extern template struct NearestNeighboursFunctor<2, GPUDevice, float>;
+    extern template struct NearestNeighboursFunctor<3, GPUDevice, float>;
 
-  } // namespace functor
-} // namespace tensorflow
+    extern template struct NearestNeighboursIndexesFunctor<1, GPUDevice, float>;
+    extern template struct NearestNeighboursIndexesFunctor<2, GPUDevice, float>;
+    extern template struct NearestNeighboursIndexesFunctor<3, GPUDevice, float>;
+
+
+    REGISTER_KERNEL_BUILDER(Name("NearestNeighboursIndexes").Device("GPU"), NearestNeighboursIndexesOp<GPUDevice, float>);
+    REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("GPU"), NearestNeighboursOp<GPUDevice, float>);
+#endif
+  }
+}

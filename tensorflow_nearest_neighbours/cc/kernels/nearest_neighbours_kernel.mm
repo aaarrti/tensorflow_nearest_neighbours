@@ -8,11 +8,8 @@
 
 @protocol TF_MetalStream
 - (dispatch_queue_t)queue;
-
 - (id <MTLCommandBuffer>)currentCommandBuffer;
-
 - (void)commit;
-
 - (void)commitAndWait;
 @end
 
