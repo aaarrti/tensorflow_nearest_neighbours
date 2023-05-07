@@ -1,41 +1,36 @@
 #include <filesystem>
-#include <dlfcn.h>
 #import <Metal/Metal.h>
 #include <dispatch/dispatch.h>
-#include <dlfcn.h>
-
-#include <filesystem>
-
 #include "tensorflow/c/kernels.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
-#include "tensorflow/c/kernels.h"
 
 
 @protocol TF_MetalStream
-- (dispatch_queue_t) queue;
-- (id <MTLCommandBuffer>) currentCommandBuffer;
+- (dispatch_queue_t)queue;
+- (id <MTLCommandBuffer>)currentCommandBuffer;
 - (void) commit;
-- (void) commitAndWait;
+- (void)commitAndWait;
 @end
 
 
 bool ends_with(std::string const &value, std::string const &ending) {
-  if (ending.size() > value.size()) return false;
+  if (ending.size() > value.size()) {
+    return false;
+  }
   return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-std::string locate_metal_lib(std::string const &root) {
+std::optional<std::string> locate_metal_lib(std::string const &root) {
   using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
   auto installation_root = std::filesystem::path(root);
-
-  for (const std::filesystem::directory_entry &dirEntry: recursive_directory_iterator(installation_root)) {
+  for (const auto &dirEntry: recursive_directory_iterator(installation_root)) {
     if (ends_with(dirEntry.path().string(), "_nearest_neighbours.metallib")) {
       std::cout << "Found metallib at: " << dirEntry.path() << std::endl;
       return dirEntry.path().string();
     }
   }
-  return "";
+  return nullptr;
 }
 
 
@@ -50,18 +45,17 @@ public:
       NSString *parentPath = [bundlePath stringByDeletingLastPathComponent];
       auto parent_path_str = [parentPath cString];
 
-      std::string lib_path = locate_metal_lib(std::string(parent_path_str) + "/lib");
-      if (lib_path == "") {
+      auto lib_path = locate_metal_lib(std::string(parent_path_str) + "/lib");
+      if (lib_path->empty()) {
         lib_path = locate_metal_lib(std::filesystem::current_path().string());
       }
-
-      if (lib_path == "") {
+      if (lib_path->empty()) {
         std::cerr << "Failed to find metallib" << std::endl;
-        abort();
+        std::abort();
       }
 
       @autoreleasepool {
-        NSString *libraryFile = [NSString stringWithUTF8String:lib_path.c_str()];
+        NSString *libraryFile = [NSString stringWithUTF8String:lib_path.value().c_str()];
         id <MTLDevice> device = MTLCreateSystemDefaultDevice();
 
         NSError *error = nil;
@@ -70,7 +64,7 @@ public:
 
         if (!library) {
           printf("Compilation error: %s\n", [[error description] UTF8String]);
-          abort();
+          std::abort();
         }
       }
     }
@@ -78,7 +72,7 @@ public:
   }
 
 public:
-  static id<MTLLibrary> library;
+  static id <MTLLibrary> library;
 
 private:
   KernelLibrarySingleton() {}
@@ -87,20 +81,21 @@ private:
 };
 
 KernelLibrarySingleton *KernelLibrarySingleton::sInstance = nullptr;
-id<MTLLibrary> KernelLibrarySingleton::library = nil;
+id <MTLLibrary> KernelLibrarySingleton::library = nil;
 
-std::vector<int64_t>getShape(TF_Tensor *tensor) {
-  std::vector<int64_t>shape;
+std::vector<int> getShape(TF_Tensor *tensor) {
+  std::vector<int> shape;
   const int dimensionCount = TF_NumDims(tensor);
   shape.resize(dimensionCount);
   for (int dim = 0; dim < dimensionCount; dim++) {
-    shape[dim] = TF_Dim(tensor, dim);
+    shape[dim] = static_cast<int>(TF_Dim(tensor, dim));
   }
   return shape;
 }
 
 
-typedef struct NearestNeighboursOp {} NearestNeighboursOp;
+typedef struct NearestNeighboursOp {
+} NearestNeighboursOp;
 
 static void *NearestNeighboursOp_Create(TF_OpKernelConstruction *ctx) {
   return static_cast<void *>(new NearestNeighboursOp);
@@ -108,6 +103,18 @@ static void *NearestNeighboursOp_Create(TF_OpKernelConstruction *ctx) {
 
 static void NearestNeighboursOp_Delete(void *kernel) {
   delete static_cast<NearestNeighboursOp *>(kernel);
+}
+
+
+typedef struct NearestNeighboursIndexesOp {
+} NearestNeighboursIndexesOp;
+
+static void *NearestNeighboursIndexesOp_Create(TF_OpKernelConstruction *ctx) {
+  return static_cast<void *>(new NearestNeighboursIndexesOp);
+}
+
+static void NearestNeighboursIndexesOp_Delete(void *kernel) {
+  delete static_cast<NearestNeighboursIndexesOp *>(kernel);
 }
 
 static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
@@ -122,7 +129,7 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
   TF_DataType dataType = TF_TensorType(token_embeddings);
 
-  std::vector<int64_t> embeddings_shape = getShape(token_embeddings);
+  const auto embeddings_shape = getShape(token_embeddings);
   const int vocab_size = getShape(embedding_matrix)[0];
   const int batch_size = embeddings_shape[0];
   const int num_tokens = embeddings_shape[1];
@@ -143,7 +150,7 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
   @autoreleasepool {
 
-    id<TF_MetalStream> metalStream = (id<TF_MetalStream>) (TF_GetStream(ctx, status));
+    id <TF_MetalStream> metalStream = (id <TF_MetalStream>) (TF_GetStream(ctx, status));
 
     if (TF_GetCode(status) != TF_OK) {
       printf("no stream was found: %s\n", TF_Message(status));
@@ -157,24 +164,24 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
     dispatch_sync(metalStream.queue, ^() {
       @autoreleasepool {
-        id<MTLCommandBuffer> commandBuffer = metalStream.currentCommandBuffer;
-        id<MTLDevice> device = commandBuffer.device;
+        id <MTLCommandBuffer> commandBuffer = metalStream.currentCommandBuffer;
+        id <MTLDevice> device = commandBuffer.device;
 
         NSError *error = nil;
-        id<MTLLibrary> library = KernelLibrarySingleton::getInstance().library;
+        id <MTLLibrary> library = KernelLibrarySingleton::getInstance().library;
 
-        id<MTLFunction> function = nil;
+        id <MTLFunction> function = nil;
 
         function = [[library newFunctionWithName:@"nearest_neighbours"] autorelease];
 
-        id<MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function error:&error];
+        id <MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function error:&error];
         assert(pipeline);
 
-        id<MTLBuffer> inputsBuffer = (id<MTLBuffer>) TF_TensorData(token_embeddings);
-        id<MTLBuffer> embeddingsBuffer = (id<MTLBuffer>) TF_TensorData(embedding_matrix);
-        id<MTLBuffer> outputsBuffer = (id<MTLBuffer>) TF_TensorData(outputs);
+        auto inputsBuffer = (id <MTLBuffer>) TF_TensorData(token_embeddings);
+        id <MTLBuffer> embeddingsBuffer = (id <MTLBuffer>) TF_TensorData(embedding_matrix);
+        id <MTLBuffer> outputsBuffer = (id <MTLBuffer>) TF_TensorData(outputs);
 
-        id<MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
+        id <MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
 
         [encoder setComputePipelineState:pipeline];
 
@@ -202,19 +209,31 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
   TF_DeleteStatus(status);
 }
 
+
+static void NearestNeighboursIndexesOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
+
+}
+
 template<typename T>
+requires std::floating_point<T>
 void RegisterKernel(const char *device_type) {
   std::string opName("NearestNeighbours");
 
-  auto *builder = TF_NewKernelBuilder("NearestNeighbours", device_type, &NearestNeighboursOp_Create,
-                                      &NearestNeighboursOp_Compute, &NearestNeighboursOp_Delete);
+  auto *builder = TF_NewKernelBuilder("NearestNeighbours",
+                                      device_type,
+                                      &NearestNeighboursOp_Create,
+                                      &NearestNeighboursOp_Compute,
+                                      &NearestNeighboursOp_Delete
+  );
 
   TF_Status *status = TF_NewStatus();
-  if (TF_OK != TF_GetCode(status))
+  if (TF_OK != TF_GetCode(status)) {
     std::cerr << " Error while registering " << opName << " kernel" << std::endl;
+  }
   TF_RegisterKernelBuilder((opName + "Op").c_str(), builder, status);
-  if (TF_OK != TF_GetCode(status))
+  if (TF_OK != TF_GetCode(status)) {
     std::cerr << " Error while registering " << opName << " kernel" << std::endl;
+  }
   TF_DeleteStatus(status);
 }
 
