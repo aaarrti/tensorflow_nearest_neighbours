@@ -30,6 +30,7 @@ def py_nearest_neighbours_indexes(embeddings_batch, embedding_matrix):
 
     return tf.cast(tf.map_fn(sequence_fn, embeddings_batch), dtype=tf.int32)
 
+# TODO add 1D, 2D, tests
 
 class TestNearestNeighbours(test.TestCase):
     def testNoNoiseAdded(self):
