@@ -7,6 +7,9 @@
 
 namespace tensorflow::functor {
 
+  typedef Eigen::ThreadPoolDevice CPUDevice;
+  typedef Eigen::GpuDevice GPUDevice;
+
   template<const int N, typename Device, typename T> requires std::floating_point<T>
   struct NearestNeighboursIndexesFunctor {
     void operator()(
