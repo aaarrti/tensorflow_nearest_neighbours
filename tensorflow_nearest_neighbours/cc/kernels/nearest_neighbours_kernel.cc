@@ -2,8 +2,8 @@
 
 #include "nearest_neighbours.hpp"
 #include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/platform/types.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+#include "tensorflow/tsl/platform/logging.h"
 
 namespace tensorflow {
 
@@ -18,13 +18,8 @@ namespace tensorflow {
         return index_1 + index_0 * shape_1;
       }
 
-      inline __attribute__((always_inline)) int index_3d_flat(
-          const int index_0,
-          const int index_1,
-          const int index_2,
-          const int shape_1,
-          const int shape_2
-      ) {
+      inline __attribute__((always_inline)) int index_3d_flat(const int index_0, const int index_1, const int index_2,
+                                                              const int shape_1, const int shape_2) {
         return index_2 + index_1 * shape_2 + index_0 * shape_2 * shape_1;
       }
 
@@ -32,9 +27,9 @@ namespace tensorflow {
       template<typename T>
       requires std::floating_point<T>
       int nearest_neighbour_index(
-          int vocab_size,
-          const Eigen::Vector<T, Eigen::Dynamic> embedding,
-          const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> embedding_matrix
+        int vocab_size,
+        const Eigen::Vector<T, Eigen::Dynamic> embedding,
+        const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> embedding_matrix
       ) {
         auto distances = std::vector<T>(vocab_size);
         const auto embedding_row_major = embedding.transpose();
@@ -53,158 +48,288 @@ namespace tensorflow {
       }
     }
 
+    // --------------------------------------------------------------------------------------------------
+
     template<typename T> requires std::floating_point<T>
     struct NearestNeighboursIndexesFunctor<1, CPUDevice, T> {
       void operator()(
-          const Device &d,
-          const int batch_size,
-          const int num_tokens,
-          const int vocab_size,
-          const int embedding_dim,
-          const T *token_embeddings,
-          const T *embedding_matrix,
-          int *output
+        const CPUDevice &d,
+        const int batch_size,
+        const int num_tokens,
+        const int vocab_size,
+        const int embedding_dim,
+        const T *token_embeddings,
+        const T *embedding_matrix,
+        int *output
       ) {
 
-        const auto eigen_embedding_matrix = Eigen::Map<
-            const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-        >(embedding_matrix, vocab_size, embedding_dim);
-        const auto sequence = Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>>(token_embeddings, embedding_dim);
+        const auto eigen_embedding_matrix = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          embedding_matrix, vocab_size, embedding_dim
+        );
+        // input is 1D.
+        const auto eigen_token_embeddings = Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>>(
+          token_embeddings, embedding_dim
+        );
 
-        auto index = nearest_neighbour_index<T>(vocab_size, sequence, eigen_embedding_matrix);
-        output[0] = index;
+        auto argmin = nearest_neighbour_index<T>(vocab_size, eigen_token_embeddings, eigen_embedding_matrix);
+        // output is scalar.
+        output[0] = argmin;
       }
     };
 
     template<typename T> requires std::floating_point<T>
     struct NearestNeighboursIndexesFunctor<2, CPUDevice, T> {
-      void operator()(const CPUDevice &device,
-                      const int batch_size,
-                      const int num_tokens,
-                      const int vocab_size,
-                      const int embedding_dim,
-                      const T *token_embeddings,
-                      const T *embedding_matrix,
-                      int *output
+      void operator()(
+        const CPUDevice &device,
+        const int batch_size,
+        const int num_tokens,
+        const int vocab_size,
+        const int embedding_dim,
+        const T *token_embeddings,
+        const T *embedding_matrix,
+        int *output
       ) {
-        for (auto token_index = 0; token_index != num_tokens; token_index++) {
-          auto distances = std::vector<T>(vocab_size);
 
-          const auto embedding = token_embeddings.row(token_index);
+        const auto eigen_embedding_matrix = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          embedding_matrix, vocab_size, embedding_dim
+        );
+        // input is 2D.
+        const auto eigen_token_embeddings = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          token_embeddings, num_tokens, embedding_dim
+        );
 
-          // Find index of the smallest distance
-          auto argmin = nearest_neighbour_index<T>(vocab_size,
-                                                   embedding,
-                                                   eigen_embedding_matrix
-          );
+        device.parallelFor(
+          num_tokens,
+          Eigen::TensorOpCost{
+            static_cast<double>(vocab_size * sizeof(float)),
+            static_cast<double>(vocab_size * sizeof(float)),
+            static_cast<double>(vocab_size)
+          },
+          [
+            vocab_size,
+            output,
+            eigen_token_embeddings,
+            eigen_embedding_matrix
+          ](int start, int stop) {
+            for (auto token_index = start; token_index != stop; token_index++) {
 
-          // Fill the output
-          const auto output_index = index_2d_flat(batch_index,
-                                                  token_index,
-                                                  params.num_tokens
-          );
-          output[output_index] = argmin;
+              const auto eigen_embedding = eigen_token_embeddings.row(token_index);
 
-        }
-
+              // Find index of the smallest distance
+              auto argmin = nearest_neighbour_index<T>(vocab_size, eigen_embedding, eigen_embedding_matrix);
+              // Output is 1D.
+              output[token_index] = argmin;
+            }
+          }
+        );
       }
     };
 
     template<typename T> requires std::floating_point<T>
     struct NearestNeighboursIndexesFunctor<3, CPUDevice, T> {
-      void operator()(const CPUDevice &device,
-                      const int batch_size,
-                      const int num_tokens,
-                      const int vocab_size,
-                      const int embedding_dim,
-                      const T *token_embeddings,
-                      const T *embedding_matrix,
-                      int *output
+      void operator()(
+        const CPUDevice &device,
+        const int batch_size,
+        const int num_tokens,
+        const int vocab_size,
+        const int embedding_dim,
+        const T *token_embeddings,
+        const T *embedding_matrix,
+        int *output
       ) {
 
         // Convert to Eigen::Matrix for computation
-        const auto eigen_embedding_matrix = Eigen::Map<
-            const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-        >(embedding_matrix, params.vocab_size, params.embedding_dim);
+        const auto eigen_embedding_matrix = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          embedding_matrix, vocab_size, embedding_dim
+        );
 
-        for (auto batch_index = 0; batch_index != params.batch_size; batch_index++) {
-          const auto sequence = Eigen::Map<
-              const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-          >(token_embeddings + index_3d_flat(batch_index, 0, 0, params.num_tokens, params.embedding_dim),
-            params.vocab_size, params.embedding_dim
-          );
+        device.parallelFor(
+          batch_size,
+          Eigen::TensorOpCost{
+            static_cast<double>(batch_size * vocab_size * sizeof(float)),
+            static_cast<double>(batch_size * vocab_size * sizeof(float)),
+            static_cast<double>(batch_size * vocab_size)
+          },
+          [
+            eigen_embedding_matrix,
+            token_embeddings,
+            num_tokens,
+            embedding_dim,
+            vocab_size,
+            output
+          ](int start, int stop) {
+            for (auto batch_index = start; batch_index != stop; batch_index++) {
+              const auto sequence = Eigen::Map<
+                const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+              >(token_embeddings + index_3d_flat(batch_index, 0, 0, num_tokens, embedding_dim),
+                vocab_size, embedding_dim
+              );
 
-          for (auto token_index = 0; token_index != params.num_tokens; token_index++) {
-            auto distances = std::vector<T>(params.vocab_size);
+              for (auto token_index = 0; token_index != num_tokens; token_index++) {
 
-            const auto embedding = sequence.row(token_index);
+                const auto embedding = sequence.row(token_index);
 
-            // Find index of the smallest distance
-            auto argmin = nearest_neighbour_index<T>(params.vocab_size,
-                                                     embedding,
-                                                     eigen_embedding_matrix
-            );
+                // Find index of the smallest distance
+                auto argmin = nearest_neighbour_index<T>(vocab_size, embedding, eigen_embedding_matrix);
+                // Output is 2D.
+                output[index_2d_flat(batch_index, token_index, num_tokens)] = argmin;
 
-            // Fill the output
-            const auto output_index = index_2d_flat(batch_index,
-                                                    token_index,
-                                                    params.num_tokens
-            );
-            output[output_index] = argmin;
-
+              }
+            }
           }
+        );
+      }
+    };
+
+
+    // --------------------------------------------------------------------------------------------------
+
+
+    template<typename T> requires std::floating_point<T>
+    struct NearestNeighboursFunctor<1, CPUDevice, T> {
+      void operator()(
+        const CPUDevice &device,
+        const int batch_size,
+        const int num_tokens,
+        const int vocab_size,
+        const int embedding_dim,
+        const T *token_embeddings,
+        const T *embedding_matrix,
+        T *output
+      ) {
+        const auto eigen_embedding_matrix = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          embedding_matrix, vocab_size, embedding_dim
+        );
+        const auto eigen_token_embeddings = Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>>(
+          token_embeddings, embedding_dim
+        );
+
+        auto argmin = nearest_neighbour_index<T>(vocab_size, eigen_token_embeddings, eigen_embedding_matrix);
+        for (auto i = 0; i != embedding_dim; i++) {
+          // output is 1D.
+          output[i] = embedding_matrix[index_2d_flat(argmin, i, embedding_dim)];
         }
       }
     };
 
 
     template<typename T> requires std::floating_point<T>
-    struct NearestNeighboursFunctor<CPUDevice, T> {
-      void operator()(const CPUDevice &device,
-                      const int batch_size,
-                      const int num_tokens,
-                      const int vocab_size,
-                      const int embedding_dim,
-                      const T *token_embeddings,
-                      const T *embedding_matrix,
-                      T *output
+    struct NearestNeighboursFunctor<2, CPUDevice, T> {
+      void operator()(
+        const CPUDevice &device,
+        const int batch_size,
+        const int num_tokens,
+        const int vocab_size,
+        const int embedding_dim,
+        const T *token_embeddings,
+        const T *embedding_matrix,
+        T *output
+      ) {
+
+        const auto eigen_embedding_matrix = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          embedding_matrix, vocab_size, embedding_dim
+        );
+
+        const auto eigen_token_embeddings = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          token_embeddings, num_tokens, embedding_dim
+        );
+
+
+        device.parallelFor(
+          num_tokens,
+          Eigen::TensorOpCost{
+            static_cast<double>(vocab_size * sizeof(float)),
+            static_cast<double>(vocab_size * sizeof(float)),
+            static_cast<double>(vocab_size)
+          },
+          [
+            eigen_token_embeddings,
+            eigen_embedding_matrix,
+            embedding_dim,
+            output,
+            vocab_size,
+            embedding_matrix
+          ](int start, int stop) {
+
+            for (auto token_index = start; token_index != stop; token_index++) {
+              const auto eigen_embedding = eigen_token_embeddings.row(token_index);
+
+              // Find index of the smallest distance
+              auto argmin = nearest_neighbour_index<T>(vocab_size, eigen_embedding, eigen_embedding_matrix);
+
+              // Fill the output
+              for (auto i = 0; i != embedding_dim; i++) {
+                output[index_2d_flat(token_index, i, embedding_dim)] =
+                  embedding_matrix[index_2d_flat(argmin, i, embedding_dim)];
+              }
+            }
+          }
+        );
+
+      }
+
+    };
+
+
+    template<typename T> requires std::floating_point<T>
+    struct NearestNeighboursFunctor<3, CPUDevice, T> {
+      void operator()(
+        const CPUDevice &device,
+        const int batch_size,
+        const int num_tokens,
+        const int vocab_size,
+        const int embedding_dim,
+        const T *token_embeddings,
+        const T *embedding_matrix,
+        T *output
       ) {
 
         // Convert to Eigen::Matrix for computation
-        const auto eigen_embedding_matrix = Eigen::Map<
-            const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-        >(embedding_matrix, params.vocab_size, params.embedding_dim);
+        const auto eigen_embedding_matrix = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+          embedding_matrix, vocab_size, embedding_dim
+        );
 
-        for (auto batch_index = 0; batch_index != params.batch_size; batch_index++) {
-          const auto sequence = Eigen::Map<
-              const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-          >(token_embeddings + index_3d_flat(batch_index, 0, 0, params.num_tokens, params.embedding_dim),
-            params.vocab_size, params.embedding_dim
-          );
 
-          for (auto token_index = 0; token_index != params.num_tokens; token_index++) {
-            auto distances = std::vector<T>(params.vocab_size);
-
-            const auto embedding = sequence.row(token_index);
-
-            // Find index of the smallest distance
-            auto argmin = nearest_neighbour_index<T>(params.vocab_size,
-                                                     embedding,
-                                                     eigen_embedding_matrix
-            );
-
-            // Fill the output
-            for (auto i = 0; i != params.embedding_dim; i++) {
-              const auto output_index = index_3d_flat(batch_index,
-                                                      token_index,
-                                                      i,
-                                                      params.num_tokens,
-                                                      params.embedding_dim
+        device.parallelFor(
+          batch_size,
+          Eigen::TensorOpCost{
+            static_cast<double>(batch_size * vocab_size * sizeof(float)),
+            static_cast<double>(batch_size * vocab_size * sizeof(float)),
+            static_cast<double>(batch_size * vocab_size)
+          },
+          [
+            token_embeddings,
+            embedding_matrix,
+            eigen_embedding_matrix,
+            vocab_size,
+            embedding_dim,
+            num_tokens,
+            output
+          ](int start, int stop) {
+            for (auto batch_index = start; batch_index != stop; batch_index++) {
+              const auto sequence = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
+                token_embeddings + index_3d_flat(batch_index, 0, 0, num_tokens, embedding_dim),
+                vocab_size, embedding_dim
               );
-              output[output_index] = embedding_matrix[index_2d_flat(argmin, i, params.embedding_dim)];
+
+              for (auto token_index = 0; token_index != num_tokens; token_index++) {
+                auto distances = std::vector<T>(vocab_size);
+
+                const auto embedding = sequence.row(token_index);
+
+                // Find index of the smallest distance
+                auto argmin = nearest_neighbour_index<T>(vocab_size, embedding, eigen_embedding_matrix);
+
+                // Fill the output
+                for (auto i = 0; i != embedding_dim; i++) {
+                  output[index_3d_flat(batch_index, token_index, i, num_tokens, embedding_dim)] =
+                    embedding_matrix[index_2d_flat(argmin, i, embedding_dim)];
+                }
+              }
             }
           }
-        }
+        );
+
       }
     };
 
@@ -227,24 +352,52 @@ namespace tensorflow {
         const auto embedding_dim = static_cast<int>(token_embeddings->dim_size(2));
 
         switch (ndim) {
-          case 1:
+          case 1: {
             OP_REQUIRES_OK(context, context->allocate_output(0, {1}, &output_tensor));
-
-            NearestNeighboursIndexesFunctor<1, CPUDevice, T>()(
-                context->eigen_device<CPUDevice>(),
-                0,
-                0,
-                static_cast<int>(embedding_matrix->dim_size(0)),
-                0,
-                token_embeddings->flat<T>().data(),
-                embedding_matrix->flat<T>().data(),
-                output_tensor->flat<int>().data()
+            NearestNeighboursIndexesFunctor<1, Device, T>()(
+              context->eigen_device<Device>(),
+              0,
+              0,
+              vocab_size,
+              embedding_dim,
+              token_embeddings->flat<T>().data(),
+              embedding_matrix->flat<T>().data(),
+              output_tensor->flat<int>().data()
             );
-          case 2:
-
-          case 3:
-
+            break;
+          }
+          case 2: {
+            const auto num_tokens = static_cast<int>(token_embeddings->dim_size(0));
+            OP_REQUIRES_OK(context, context->allocate_output(0, {num_tokens}, &output_tensor));
+            NearestNeighboursIndexesFunctor<2, Device, T>()(
+              context->eigen_device<Device>(),
+              0,
+              num_tokens,
+              vocab_size,
+              embedding_dim,
+              token_embeddings->flat<T>().data(),
+              embedding_matrix->flat<T>().data(),
+              output_tensor->flat<int>().data()
+            );
+            break;
+          }
+          case 3: {
+            const auto batch_size = static_cast<int>(token_embeddings->dim_size(0));
+            const auto num_tokens = static_cast<int>(token_embeddings->dim_size(1));
+            OP_REQUIRES_OK(context, context->allocate_output(0, {batch_size, num_tokens}, &output_tensor));
+            NearestNeighboursIndexesFunctor<3, Device, T>()(
+              context->eigen_device<Device>(),
+              batch_size,
+              num_tokens,
+              vocab_size,
+              embedding_dim,
+              token_embeddings->flat<T>().data(),
+              embedding_matrix->flat<T>().data(),
+              output_tensor->flat<int>().data()
+            );
+          }
           default:
+            break;
         }
       }
 
@@ -264,24 +417,69 @@ namespace tensorflow {
         OP_REQUIRES_OK(context, context->input("embedding_matrix", &embedding_matrix));
         // Create output
         tensorflow::Tensor *output_tensor = nullptr;
+        const auto ndim = embedding_matrix->shape().num_elements();
+        const auto vocab_size = static_cast<int>(embedding_matrix->dim_size(0));
+        const auto embedding_dim = static_cast<int>(token_embeddings->dim_size(2));
+
+        switch (ndim) {
+          case 1: {
+            OP_REQUIRES_OK(context, context->allocate_output(0, {embedding_dim}, &output_tensor));
+            NearestNeighboursFunctor<1, Device, T>()(
+              context->eigen_device<Device>(),
+              0,
+              0,
+              vocab_size,
+              embedding_dim,
+              token_embeddings->flat<T>().data(),
+              embedding_matrix->flat<T>().data(),
+              output_tensor->flat<T>().data()
+            );
+            break;
+          }
+          case 2: {
+            const auto num_tokens = static_cast<int>(token_embeddings->dim_size(0));
+            OP_REQUIRES_OK(context, context->allocate_output(0, {num_tokens, embedding_dim}, &output_tensor));
+            NearestNeighboursFunctor<2, Device, T>()(
+              context->eigen_device<Device>(),
+              0,
+              num_tokens,
+              vocab_size,
+              embedding_dim,
+              token_embeddings->flat<T>().data(),
+              embedding_matrix->flat<T>().data(),
+              output_tensor->flat<T>().data()
+            );
+            break;
+          }
+          case 3: {
+            const auto batch_size = static_cast<int>(token_embeddings->dim_size(0));
+            const auto num_tokens = static_cast<int>(token_embeddings->dim_size(1));
+            OP_REQUIRES_OK(
+              context,
+              context->allocate_output(0, {batch_size, num_tokens, embedding_dim}, &output_tensor)
+            );
+            NearestNeighboursFunctor<3, Device, T>()(
+              context->eigen_device<Device>(),
+              batch_size,
+              num_tokens,
+              vocab_size,
+              embedding_dim,
+              token_embeddings->flat<T>().data(),
+              embedding_matrix->flat<T>().data(),
+              output_tensor->flat<T>().data()
+            );
+            break;
+          }
+          default:
+            break;
+        }
       }
     };
 
 
-#define REGISTER_CPU()                                                                                                     \
-
     REGISTER_KERNEL_BUILDER(Name("NearestNeighboursIndexes").Device("CPU"),
-                            NearestNeighboursIndexesOp<CPUDevice, float>)
-    \
-
-    REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("CPU"), NearestNeighboursOp<CPUDevice, float>)
-    \
-
-    REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("CPU"), NearestNeighboursOp<CPUDevice, double>);
-
-
-
-    REGISTER_CPU()
+                            NearestNeighboursIndexesOp<CPUDevice, float>);
+    REGISTER_KERNEL_BUILDER(Name("NearestNeighbours").Device("CPU"), NearestNeighboursOp<CPUDevice, float>);
 
 
 #ifdef CUDA
