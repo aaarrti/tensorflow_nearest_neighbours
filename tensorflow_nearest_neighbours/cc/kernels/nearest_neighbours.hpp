@@ -1,6 +1,6 @@
 #pragma once
 
-#include <concepts>
+//#include <concepts>
 #include "tensorflow/core/framework/tensor.h"
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 
@@ -10,7 +10,8 @@ namespace tensorflow::functor {
   typedef Eigen::ThreadPoolDevice CPUDevice;
   typedef Eigen::GpuDevice GPUDevice;
 
-  template<const int N, typename Device, typename T> requires std::floating_point<T>
+  template<const int N, typename Device, typename T>
+  //requires std::floating_point<T>
   struct NearestNeighboursIndexesFunctor {
     void operator()(
         const Device &d,
@@ -24,7 +25,8 @@ namespace tensorflow::functor {
     );
   };
 
-  template<const int N, typename Device, typename T> requires std::floating_point<T>
+  template<const int N, typename Device, typename T>
+  //requires std::floating_point<T>
   struct NearestNeighboursFunctor {
     void operator()(
         const Device &d,

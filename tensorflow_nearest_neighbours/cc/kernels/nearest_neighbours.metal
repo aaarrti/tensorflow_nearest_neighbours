@@ -27,8 +27,9 @@ kernel void nearest_neighbours_indexes_1d(
   device float *token_embeddings [[buffer(0)]],
   device float *embedding_matrix [[buffer(1)]],
   device int *outputs [[buffer(2)]],
-  constant int &vocab_size [[buffer(3)]],
-  constant int &embed_dim [[buffer(4)]],
+  constant int &num_tokens [[buffer(3)]],
+  constant int &vocab_size [[buffer(4)]],
+  constant int &embed_dim [[buffer(5)]],
   uint2 tid [[thread_position_in_grid]]
 ) {
 
@@ -147,6 +148,7 @@ kernel void nearest_neighbours_1d(
   device float *token_embeddings [[buffer(0)]],
   device float *embedding_matrix [[buffer(1)]],
   device float *outputs [[buffer(2)]],
+  constant int &num_tokens [[buffer(3)]],
   constant int &vocab_size [[buffer(4)]],
   constant int &embed_dim [[buffer(5)]],
   uint2 tid [[thread_position_in_grid]]
@@ -185,6 +187,7 @@ kernel void nearest_neighbours_2d(
   device float *token_embeddings [[buffer(0)]],
   device float *embedding_matrix [[buffer(1)]],
   device float *outputs [[buffer(2)]],
+  constant int &num_tokens [[buffer(3)]],
   constant int &vocab_size [[buffer(4)]],
   constant int &embed_dim [[buffer(5)]],
   uint2 tid [[thread_position_in_grid]]

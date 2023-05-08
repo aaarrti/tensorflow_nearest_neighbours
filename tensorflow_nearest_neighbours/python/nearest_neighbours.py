@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Tuple
 import tensorflow as tf
 from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
-from tensorflow.python.types.core import TensorLike
 
 _backend = load_library.load_op_library(
     resource_loader.get_path_to_datafile("../_nearest_neighbours_op.so")
@@ -14,7 +12,7 @@ __all__ = ["nearest_neighbours", "nearest_neighbours_indexes"]
 
 
 def nearest_neighbours(
-        token_embeddings: tf.Tensor, embedding_matrix: tf.Tensor
+    token_embeddings: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
     """
     Take batch of token embeddings, and compute nearest neighbours for each token in Embedding Matrix's space.
@@ -33,7 +31,7 @@ def nearest_neighbours(
 
 
 def nearest_neighbours_indexes(
-        token_embeddings: tf.Tensor, embedding_matrix: tf.Tensor
+    token_embeddings: tf.Tensor, embedding_matrix: tf.Tensor
 ) -> tf.Tensor:
     """
     Take batch of token embeddings, and find index nearest neighbours for each token in Embedding Matrix's space.
