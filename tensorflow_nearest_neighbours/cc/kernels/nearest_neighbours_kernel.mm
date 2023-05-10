@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <utility>
 #import <Metal/Metal.h>
 #include <dispatch/dispatch.h>
 #include "tensorflow/c/kernels.h"
@@ -10,17 +11,17 @@
 
 @protocol TF_MetalStream
 - (dispatch_queue_t)queue;
-
 - (id <MTLCommandBuffer>)currentCommandBuffer;
-
 - (void)commit;
-
 - (void)commitAndWait;
 @end
 
 // --------------------------------------------------------------
 typedef struct NearestNeighboursOp {
 } NearestNeighboursOp;
+
+typedef struct NearestNeighboursIndexesOp {
+} NearestNeighboursIndexesOp;
 
 static void *NearestNeighboursOp_Create(TF_OpKernelConstruction *ctx) {
   return static_cast<void *>(new NearestNeighboursOp);
@@ -29,10 +30,6 @@ static void *NearestNeighboursOp_Create(TF_OpKernelConstruction *ctx) {
 static void NearestNeighboursOp_Delete(void *kernel) {
   delete static_cast<NearestNeighboursOp *>(kernel);
 }
-
-
-typedef struct NearestNeighboursIndexesOp {
-} NearestNeighboursIndexesOp;
 
 static void *NearestNeighboursIndexesOp_Create(TF_OpKernelConstruction *ctx) {
   return static_cast<void *>(new NearestNeighboursIndexesOp);
@@ -109,21 +106,20 @@ public:
 
 public:
   static id <MTLLibrary> library;
-
 private:
   KernelLibrarySingleton() {}
-
   static KernelLibrarySingleton *sInstance;
 };
 
 KernelLibrarySingleton *KernelLibrarySingleton::sInstance = nullptr;
 id <MTLLibrary> KernelLibrarySingleton::library = nil;
 
-std::vector<int> getShape(TF_Tensor *tensor) {
-  std::vector<int> shape;
+template<typename T>
+std::vector<T> getShape(TF_Tensor *tensor) {
+  std::vector<T> shape;
   const int dimensionCount = TF_NumDims(tensor);
   for (int dim = 0; dim < dimensionCount; dim++) {
-    shape.push_back(static_cast<int>(TF_Dim(tensor, dim)));
+    shape.push_back(static_cast<T>(TF_Dim(tensor, dim)));
   }
   return shape;
 }
@@ -147,8 +143,9 @@ static void launch_kernel(
   const int threadsPerThreadGroup_Y,
   const int threadsPerThreadGroup_Z
 ) {
+
   @autoreleasepool {
-    id <TF_MetalStream> metalStream = (id <TF_MetalStream>) (TF_GetStream(ctx, status));
+    auto metalStream = (id <TF_MetalStream>) (TF_GetStream(ctx, status));
 
     dispatch_sync(metalStream.queue, ^() {
       @autoreleasepool {
@@ -161,8 +158,8 @@ static void launch_kernel(
         id <MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function error:&error];
         assert(pipeline);
         auto inputsBuffer = (id <MTLBuffer>) TF_TensorData(token_embeddings);
-        id <MTLBuffer> embeddingsBuffer = (id <MTLBuffer>) TF_TensorData(embedding_matrix);
-        id <MTLBuffer> outputsBuffer = (id <MTLBuffer>) TF_TensorData(outputs);
+        auto embeddingsBuffer = (id <MTLBuffer>) TF_TensorData(embedding_matrix);
+        auto outputsBuffer = (id <MTLBuffer>) TF_TensorData(outputs);
         id <MTLComputeCommandEncoder> encoder = commandBuffer.computeCommandEncoder;
         [encoder setComputePipelineState:pipeline];
         [encoder setBuffer:inputsBuffer offset:0 atIndex:0];
@@ -178,7 +175,7 @@ static void launch_kernel(
         );
         MTLSize threadsPerThreadGroup = MTLSizeMake(
           threadsPerThreadGroup_X,
-          threadGroupsPerGrid_Y,
+          threadsPerThreadGroup_Y,
           threadGroupsPerGrid_Z
         );
         [encoder dispatchThreadgroups:threadGroupsPerGrid threadsPerThreadgroup:threadsPerThreadGroup];
@@ -203,7 +200,7 @@ static void default_launch_kernel(
   const int threadGroupsPerGrid_Y
 ) {
   launch_kernel(
-    name,
+    std::move(name),
     ctx,
     status,
     token_embeddings,
@@ -236,14 +233,14 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
 
   TF_DataType dataType = TF_TensorType(token_embeddings);
 
-  const std::vector<int> input_shape = getShape(token_embeddings);
-  const std::vector<int> embedding_matrix_shape = getShape(embedding_matrix);
+  const auto input_shape = getShape<int64_t>(token_embeddings);
+  const auto embedding_matrix_shape = getShape<int64_t>(embedding_matrix);
   const int vocab_size = embedding_matrix_shape[0];
   const int embedding_dim = embedding_matrix_shape[1];
 
   const auto ndim = input_shape.size();
   TF_Tensor *outputs = TF_AllocateOutput(
-    ctx, 0, dataType, (int64_t *) input_shape.data(),
+    ctx, 0, dataType, input_shape.data(),
     input_shape.size(), 0, status
   );
   if (TF_GetCode(status) != TF_OK) {
@@ -254,10 +251,6 @@ static void NearestNeighboursOp_Compute(void *kernel, TF_OpKernelContext *ctx) {
     TF_DeleteTensor(outputs);
     TF_DeleteStatus(status);
   }
-
-  std::cout << "-----------------------------------" << std::endl;
-  std::cout << "ndim = " << ndim << std::endl;
-  std::cout << "-----------------------------------" << std::endl;
 
   switch (ndim) {
     case 1: {
@@ -339,17 +332,12 @@ static void NearestNeighboursIndexesOp_Compute(void *kernel, TF_OpKernelContext 
   TF_DataType dataType = TF_TensorType(token_embeddings);
 
 
-  const std::vector<int> input_shape = getShape(token_embeddings);
-  const std::vector<int> embedding_matrix_shape = getShape(embedding_matrix);
+  const std::vector<int> input_shape = getShape<int>(token_embeddings);
+  const std::vector<int> embedding_matrix_shape = getShape<int>(embedding_matrix);
 
   const auto ndim = input_shape.size();
   const auto vocab_size = embedding_matrix_shape[0];
   const auto embedding_dim = embedding_matrix_shape[1];
-
-  std::cout << "-----------------------------------" << std::endl;
-  std::cout << "ndim = " << ndim << std::endl;
-  std::cout << "-----------------------------------" << std::endl;
-
 
 
   switch (ndim) {
@@ -380,9 +368,8 @@ static void NearestNeighboursIndexesOp_Compute(void *kernel, TF_OpKernelContext 
       break;
     }
     case 2: {
-      std::string name = "nearest_neighbours_indexes_3d";
-      const int batch_size = input_shape[0];
-      const int num_tokens = input_shape[1];
+      std::string name = "nearest_neighbours_indexes_2d";
+      const int num_tokens = input_shape[0];
       const std::vector<int64_t> dims = std::vector<int64_t>{num_tokens};
       TF_Tensor *outputs = TF_AllocateOutput(
         ctx, 0, TF_INT32, dims.data(), 1, 0, status
@@ -405,8 +392,8 @@ static void NearestNeighboursIndexesOp_Compute(void *kernel, TF_OpKernelContext 
         num_tokens,
         vocab_size,
         embedding_dim,
-        1,
-        num_tokens
+        num_tokens,
+        1
       );
       break;
     }
