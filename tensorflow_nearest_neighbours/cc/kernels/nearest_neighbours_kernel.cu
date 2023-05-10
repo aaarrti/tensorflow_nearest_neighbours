@@ -1,4 +1,5 @@
 #define EIGEN_USE_GPU
+
 #include "tensorflow/core/framework/op_kernel.h"
 #include "nearest_neighbours.hpp"
 #include <array>
@@ -8,11 +9,11 @@ namespace tensorflow {
   namespace functor {
 
     namespace {
-      inline __attribute__((always_inline)) int index_2d_flat(int index_0, int index_1, int shape_1) {
+      __device__ __attribute__((always_inline)) inline int index_2d_flat(int index_0, int index_1, int shape_1) {
         return index_1 + index_0 * shape_1;
       }
 
-      inline __attribute__((always_inline)) int
+      __device__ __attribute__((always_inline)) inline int
       index_3d_flat(int index_0, int index_1, int index_2, int shape_1, int shape_2) {
         return index_2 + index_1 * shape_2 + index_0 * shape_2 * shape_1;
       }
