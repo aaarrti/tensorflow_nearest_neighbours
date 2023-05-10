@@ -196,3 +196,5 @@ build
 *.air
 *.metallib
 *.tmp
+§compile_commands.json
+cmake-build-*
