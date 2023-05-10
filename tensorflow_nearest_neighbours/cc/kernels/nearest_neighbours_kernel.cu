@@ -284,7 +284,6 @@ namespace tensorflow {
 
 
     template<typename T>
-
     struct NearestNeighboursIndexesFunctor<1, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
@@ -308,7 +307,6 @@ namespace tensorflow {
     };
 
     template<typename T>
-
     struct NearestNeighboursIndexesFunctor<2, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
@@ -359,7 +357,6 @@ namespace tensorflow {
     // -----------------------------------------------------------------------------------------------------
 
     template<typename T>
-
     struct NearestNeighboursFunctor<1, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
@@ -383,7 +380,6 @@ namespace tensorflow {
     };
 
     template<typename T>
-
     struct NearestNeighboursFunctor<2, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
@@ -408,7 +404,6 @@ namespace tensorflow {
 
 
     template<typename T>
-
     struct NearestNeighboursFunctor<3, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
