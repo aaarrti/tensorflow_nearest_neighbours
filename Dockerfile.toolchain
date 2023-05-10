@@ -1,0 +1,24 @@
+FROM --platform=$BUILDPLATFORM tensorflow/tensorflow:2.10.0-gpu
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y tzdata \
+      build-essential \
+      gcc \
+      g++ \
+      gdb \
+      clang \
+      make \
+      ninja-build \
+      cmake \
+      autoconf \
+      automake \
+      libtool \
+      valgrind \
+      locales-all \
+      dos2unix \
+      rsync \
+      tar \
+      python \
+      python-dev \
+  && apt-get clean

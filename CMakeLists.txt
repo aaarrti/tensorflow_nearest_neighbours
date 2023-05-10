@@ -1,48 +1,32 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.16.3)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-project(tensorflow_nearest_neighbours)
-project(tensorflow_nearest_neighbours LANGUAGES CXX OBJCXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_OBJCXX_STANDARD 20)
-SET(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_SHARED_LIBRARY_SUFFIX .so)
+if (${EnableMetal})
+    project(tensorflow_nearest_neighbours LANGUAGES CXX OBJCXX)
+    set(CMAKE_OBJCXX_STANDARD 11)
+    include_directories(/Users/artemsereda/miniconda3/envs/tensorflow_nearest_neighbours/lib/python3.9/site-packages/tensorflow/include)
+    link_directories(/Users/artemsereda/miniconda3/envs/tensorflow_nearest_neighbours/lib/python3.9/site-packages/tensorflow)
+elseif (${EnableCUDA})
+    project(tensorflow_nearest_neighbours CUDA)
+    set(CMAKE_CUDA_STANDARD 11)
+    include_directories(/usr/local/lib/python3.8/dist-packages/tensorflow/include)
+    link_directories(/usr/local/lib/python3.8/dist-packages/tensorflow)
+else ()
+    project(tensorflow_nearest_neighbours LANGUAGES CXX)
+    set(CMAKE_CXX_STANDARD 11)
+    SET(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+    project(tensorflow_nearest_neighbours)
+    include_directories(/Users/artemsereda/miniconda3/envs/tensorflow_nearest_neighbours/lib/python3.9/site-packages/tensorflow/include)
+    link_directories(/Users/artemsereda/miniconda3/envs/tensorflow_nearest_neighbours/lib/python3.9/site-packages/tensorflow)
+endif()
+
+
+
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 add_compile_options(-O3 "-ferror-limit=0")
 option(EnableMetal "EnableMetal" OFF)
 option(EnableMetal "EnableCUDA" OFF)
 
-# set(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/tensorflow_nearest_neighbours/")
-
-if (DEFINED $ENV{PYTHON_CMD})
-    set(PYTHON_CMD $ENV{PYTHON_CMD})
-else ()
-    find_package(Python COMPONENTS Interpreter)
-    set(PYTHON_CMD ${Python_EXECUTABLE})
-endif ()
-message("PYTHON_CMD:" $ENV{PYTHON_CMD})
-
-include_directories(/Users/artemsereda/miniconda3/envs/tensorflow_nearest_neighbours/lib/python3.9/site-packages/tensorflow/include)
-link_directories(/Users/artemsereda/miniconda3/envs/tensorflow_nearest_neighbours/lib/python3.9/site-packages/tensorflow)
-
-#execute_process(
-#        COMMAND ${PYTHON_CMD} "-c 'import tensorflow as tf;print(\" \".join(tf.sysconfig.get_compile_flags()))'"
-#        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-#        RESULT_VARIABLE TF_COMPILE_FLAGS_RESULT
-#        OUTPUT_VARIABLE TF_COMPILE_FLAGS
-#        COMMAND_ERROR_IS_FATAL ANY
-#        OUTPUT_STRIP_TRAILING_WHITESPACE
-#        COMMAND_ECHO STDOUT
-#)
-#message("TF_COMPILE_FLAGS = ${TF_COMPILE_FLAGS}")
-
-add_library(
-        _nearest_neighbours
-        SHARED
-        tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.cc
-        tensorflow_nearest_neighbours/cc/ops/nearest_neighbours_op.cc
-)
-target_link_libraries(_nearest_neighbours tensorflow_framework.2)
 
 if (${EnableMetal})
     add_custom_command(
@@ -64,14 +48,11 @@ if (${EnableMetal})
             metal_kernel
             tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.mm
     )
-    target_link_libraries(
-            _nearest_neighbours metal_kernel
-    )
 elseif (${EnableCUDA})
-    set(CMAKE_CUDA_STANDARD 18)
     set(CMAKE_CXX_FLAGS "-D CUDA=1")
     add_library(
             cuda_lib
+            SHARED
             tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.cu
     )
     set_target_properties(
@@ -81,7 +62,14 @@ elseif (${EnableCUDA})
             ON
     )
     target_link_libraries(cuda_lib tensorflow_framework.2)
-    target_link_libraries(_nearest_neighbours cudart cuda_kernel)
+else()
+    add_library(
+            _nearest_neighbours
+            SHARED
+            tensorflow_nearest_neighbours/cc/kernels/nearest_neighbours_kernel.cc
+            tensorflow_nearest_neighbours/cc/ops/nearest_neighbours_op.cc
+    )
+    target_link_libraries(_nearest_neighbours tensorflow_framework.2)
 endif ()
 
 

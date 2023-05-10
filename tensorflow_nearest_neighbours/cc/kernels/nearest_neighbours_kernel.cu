@@ -1,5 +1,4 @@
 #define EIGEN_USE_GPU
-
 #include "tensorflow/core/framework/op_kernel.h"
 #include "nearest_neighbours.hpp"
 #include <array>
@@ -26,7 +25,7 @@ namespace tensorflow {
     __global__ void NearestNeighboursIndexesKernel_1D(
       const T *token_embeddings,
       const T *embedding_matrix,
-      T *output,
+      int *output,
       const int num_tokens,
       const int vocab_size,
       const int embedding_dim
@@ -62,7 +61,7 @@ namespace tensorflow {
     __global__ void NearestNeighboursIndexesKernel_2D(
       const T *token_embeddings,
       const T *embedding_matrix,
-      T *output,
+      int *output,
       const int num_tokens,
       const int vocab_size,
       const int embedding_dim
@@ -283,9 +282,9 @@ namespace tensorflow {
     // -----------------------------------------------------------------------------------------------------
 
 
-    template<1, typename T>
+    template<typename T>
 
-    struct NearestNeighboursIndexesFunctor<GPUDevice, T> {
+    struct NearestNeighboursIndexesFunctor<1, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
         const int batch_size,
@@ -307,9 +306,9 @@ namespace tensorflow {
       }
     };
 
-    template<2, typename T>
+    template<typename T>
 
-    struct NearestNeighboursIndexesFunctor<GPUDevice, T> {
+    struct NearestNeighboursIndexesFunctor<2, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
         const int batch_size,
@@ -332,9 +331,8 @@ namespace tensorflow {
     };
 
 
-    template<3, typename T>
-
-    struct NearestNeighboursIndexesFunctor<GPUDevice, T> {
+    template<typename T>
+    struct NearestNeighboursIndexesFunctor<3, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
         const int batch_size,
@@ -359,9 +357,9 @@ namespace tensorflow {
 
     // -----------------------------------------------------------------------------------------------------
 
-    template<1, typename T>
+    template<typename T>
 
-    struct NearestNeighboursFunctor<GPUDevice, T> {
+    struct NearestNeighboursFunctor<1, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
         const int batch_size,
@@ -383,9 +381,9 @@ namespace tensorflow {
       }
     };
 
-    template<2, typename T>
+    template<typename T>
 
-    struct NearestNeighboursFunctor<GPUDevice, T> {
+    struct NearestNeighboursFunctor<2, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
         const int batch_size,
@@ -408,9 +406,9 @@ namespace tensorflow {
     };
 
 
-    template<3, typename T>
+    template<typename T>
 
-    struct NearestNeighboursFunctor<GPUDevice, T> {
+    struct NearestNeighboursFunctor<3, GPUDevice, T> {
       void operator()(
         const GPUDevice &device,
         const int batch_size,
@@ -448,7 +446,6 @@ namespace tensorflow {
     struct NearestNeighboursIndexesFunctor<2, GPUDevice, float>;
     template
     struct NearestNeighboursIndexesFunctor<3, GPUDevice, float>;
-
 
   }
 }
