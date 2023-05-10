@@ -4,7 +4,7 @@ from setuptools.dist import Distribution
 from setuptools.command.install import install
 from pathlib import Path
 
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 
 project_name = "tensorflow_nearest_neighbours"
 
